@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 화면은 전부 Compose(GakimTheme)로 그린다. 여기서는 시작할 때 보이는 창 배경만 정한다. -->
+    <style name="Theme.GakimCharge" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@color/window_background</item>
+        <item name="android:navigationBarColor">@color/window_background</item>
+    </style>
+</resources>

@@ -1,0 +1,26 @@
+# Pleos SDK binaries/sources: 42dot license forbids redistribution
+pleos-sdk/
+pleos-sdk-src/
+
+# Android / Gradle
+.gradle/
+build/
+**/build/
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Secrets and signing (never commit)
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+*.env
+
+# Published demo APK
+apk/*.apk
+!apk/gakim-charge-0.3.1-debug.apk
+.kotlin/

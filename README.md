@@ -1,45 +1,46 @@
 # 가는 김에 충전
 
-Pleos Connect용 전기차 일정 앱입니다. 볼일을 보는 동안 충전하면 다음 약속에 맞출 수 있는지, 장소별 예상 도착 시각과 남는 시간을 비교합니다.
+볼일을 보는 동안 전기차를 충전해도 다음 일정에 늦지 않는지 계산하고, 장소별 예상 완료 시각을 비교해 차량 내비게이션으로 안내하는 Pleos Connect 앱입니다.
 
-예를 들어 “25분 장 보고 4시 10분까지 학교 가야 해”라고 말하면 마트와 학교가 방문 순서에 들어갑니다. 시간이나 장소는 화면에서 고칠 수 있고, 원하는 경로를 확인하면 차량 내비에 반영합니다.
+## 실행 방법
 
-[APK 다운로드](https://github.com/Gravitism29/Gago.charge/raw/refs/heads/main/apk/%EA%B0%80%EB%8A%94%20%EA%B9%80%EC%97%90%20%EC%B6%A9%EC%A0%84_%EA%B0%80%EB%8A%94%20%EA%B9%80%EC%97%90%20%EC%B6%A9%EC%A0%84_release.apk) · 0.4.0 · `가는 김에 충전_가는 김에 충전_release.apk` · 서명된 release 빌드
+1. **에뮬레이터 준비**: Pleos Connect 에뮬레이터를 실행하고 기어를 **P(주차)**에 둡니다.
+   - 주행(D) 상태에서는 Pleos 플랫폼 정책에 따라 앱 화면이 제한됩니다.
+2. **APK 설치**: [배포용 APK](https://github.com/Gravitism29/Gago.charge/raw/refs/heads/main/apk/%EA%B0%80%EB%8A%94%20%EA%B9%80%EC%97%90%20%EC%B6%A9%EC%A0%84_%EA%B0%80%EB%8A%94%20%EA%B9%80%EC%97%90%20%EC%B6%A9%EC%A0%84_release.apk)를 내려받은 폴더에서 아래 명령어로 설치합니다.
 
-## 사용하는 데이터
+   ```powershell
+   adb install -r "가는 김에 충전_가는 김에 충전_release.apk"
+   ```
 
-| 항목 | 출처 | API 키 |
-|---|---|---|
-| 배터리 잔량, 주행 가능 거리, 기어, 음성 인식·안내, 내비 경로 | Pleos Connect SDK | 필요 없음 |
-| 주변 대형마트 검색, 좌표의 행정구역 | 카카오 로컬 API | 카카오 REST API 키 |
-| 구간별 거리와 소요 시간 | 카카오모빌리티 길찾기 API | 카카오 REST API 키 |
-| 충전소 위치·출력·사용 가능 여부 | 한국환경공단 전기자동차 충전소 정보(공공데이터포털) | 공공데이터포털 인증키 |
-| 대형마트 의무휴업일, 폐점 점포 | 앱에 포함된 자료(`app/src/main/assets`, 수집 도구 `tools/`) | 필요 없음 |
+3. **앱 실행**: 에뮬레이터의 앱 목록에서 **가는 김에 충전**을 실행합니다.
 
-- 충전소의 주차·연결 시간과 충전 속도는 실측값이 없어 화면에 `추정`으로 표시합니다.
-- 의무휴업일은 2026년 11~12월 공지 기준이며, 그 이후 날짜는 규칙에 따른 `(추정)`으로 표시합니다.
+### 사용 방법
 
-## API 키
+1. **일정 입력**: 마이크 버튼을 누르고 *“25분 장 보고 4시 10분까지 학교 가야 해”*처럼 머무는 시간과 도착해야 하는 시각을 말합니다. 화면의 예시 문장을 눌러도 됩니다.
+2. **시간 비교**: 주변 마트별로 **충전할 때**와 **충전하지 않을 때** 일정이 끝나는 시각이 나란히 표시됩니다.
+3. **경로 안내**: 들를 곳을 고르고 확인하면 차량 내비게이션에 경로가 설정됩니다.
 
-- **위 APK에는 API 키가 들어 있습니다.** 내려받아 설치하면 실제 마트·경로·충전소 데이터로 동작합니다.
-- **이 저장소의 소스에는 API 키가 없습니다.** 키 값은 비워 둔 채로 올리며, 소스를 직접 빌드하려면 본인의 키를 따로 넣어야 합니다. 키 없이 빌드하면 마트·경로·충전소가 화면에 `시연 값`으로 표시된 예시 데이터로 동작합니다.
+## 테스트 환경 및 필요한 설정
 
-키를 넣는 방법은 둘 중 하나입니다.
+- **별도 설정 불필요**: 배포용 APK에는 API 키가 포함되어 있어, 설치하면 실제 마트·경로·충전소 데이터로 바로 동작합니다.
+- **네트워크 연결 필요**: 실시간 데이터 조회를 위해 아래 외부 API를 호출합니다.
+  - 카카오 로컬 API, 카카오모빌리티 길찾기 API
+  - 한국환경공단 전기차 충전소 정보(공공데이터포털)
+- **차량 데이터 연동**: 배터리 잔량과 주행 가능 거리는 에뮬레이터의 차량 설정값을 실시간으로 읽어 계산에 반영합니다.
+- **소스 코드를 직접 빌드할 때**: 저장소의 소스 코드에는 API 키가 포함되어 있지 않습니다. `local.properties.example`을 참고해 `local.properties`에 본인의 API 키를 입력한 뒤 빌드해야 하며, 키 없이 빌드하면 내장된 예시 데이터로 동작합니다.
 
-1. `local.properties.example`의 두 항목(`kakao.restApiKey`, `datagokr.serviceKey`)을 프로젝트 루트의 `local.properties`에 복사해 값을 채웁니다. 이 파일은 git 제외 대상이라 커밋되지 않습니다.
-2. 환경 변수 `KAKAO_REST_API_KEY`, `DATAGOKR_SERVICE_KEY`로 넘깁니다.
+| 항목 | 내용 |
+| :--- | :--- |
+| **개발 및 빌드 환경** | Windows 11, JDK 17, Android `minSdk 28` |
+| **Pleos Connect SDK** | `Vehicle` 2.3.2, `NaviHelper` 3.0.5, `SpeechToText` 3.3.1, `TextToSpeech` 3.3.1 |
+| **사용 권한** | `pleos.car.permission.CAR_ENERGY`, `CAR_DRIVE`, `NAVI_ROUTE`, `NAVI_ROUTE_SEARCH`, `NAVI_CUSTOM_MAP`, `STT_SERVICE`, `TTS_SERVICE`, `android.permission.INTERNET` |
 
-키 발급:
+## 개발에 사용한 Pleos Connect 에뮬레이터 버전과 화면 규격
 
-- 카카오: [developers.kakao.com](https://developers.kakao.com) → 내 애플리케이션 → REST API 키. 카카오맵(로컬)과 카카오모빌리티 길찾기 사용 설정이 필요합니다.
-- 충전소: [data.go.kr](https://www.data.go.kr) → 한국환경공단_전기자동차 충전소 정보 → 활용신청.
+- **에뮬레이터 버전**: Pleos Connect 에뮬레이터 v2.1.0 (`system-images;android-34;pleos_car_emulator;x86_64`)
+- **화면 규격**: 2560 × 1440 px, 가로, `mdpi`(160 dpi)
+- **앱 표시 영역**: 화면 오른쪽 약 1700 × 1210 px
 
-## 빌드와 테스트
+## APK 파일 위치
 
-JDK 17과 Android SDK Platform 35가 필요합니다. Windows에서 프로젝트 루트의 다음 명령을 실행합니다.
-
-```powershell
-.\gradlew.bat :domain:test :app:testDebugUnitTest :app:assembleDebug "-Pgakim.useFakes=false"
-```
-
-Pleos 플랫폼은 주행 중(기어 D)에는 앱 화면을 가립니다. 에뮬레이터에서는 기어를 P에 두고 실행합니다.
+- [`apk/가는 김에 충전_가는 김에 충전_release.apk`](https://github.com/Gravitism29/Gago.charge/raw/refs/heads/main/apk/%EA%B0%80%EB%8A%94%20%EA%B9%80%EC%97%90%20%EC%B6%A9%EC%A0%84_%EA%B0%80%EB%8A%94%20%EA%B9%80%EC%97%90%20%EC%B6%A9%EC%A0%84_release.apk)

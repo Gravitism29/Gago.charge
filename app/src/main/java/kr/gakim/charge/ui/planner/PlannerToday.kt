@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import java.time.LocalDateTime
 import kr.gakim.charge.data.*
@@ -32,10 +33,13 @@ internal fun PlannerToday(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
     val enabled=!s.busy && s.park!=ParkState.MOVING
     var editing by rememberSaveable { mutableStateOf<Long?>(null) }
     val visit=s.plan.visits.firstOrNull { it.id==editing }
+    LaunchedEffect(editing) { c.focusSpeechVisit(editing) }
+    DisposableEffect(c) { onDispose { c.focusSpeechVisit(null) } }
     Column(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(10.dp)) {
         Row(Modifier.weight(1f).fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(28.dp)) {
             Column(Modifier.weight(1.75f).fillMaxHeight().verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 if(visit==null) PlannerAssistant(s)
+                if(visit==null && s.presentationIssue()?.retry==true) PlannerPill("다시 시도",vm::refresh,enabled=enabled)
                 if(visit==null) SurfaceCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(horizontal=18.dp,vertical=12.dp)) {
                         Text(if(s.listening) "지금 듣고 있어요" else if(s.transcript.isNotBlank()) "이렇게 들었어요" else "마이크를 누르고 말해 보세요",style=GakimType.Caption,color=GakimColors.Voice)
@@ -52,30 +56,41 @@ internal fun PlannerToday(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
                     }.clickable(enabled=enabled,role=Role.Button) { open("add") },contentAlignment=Alignment.Center) {
                         Text("+ 할 일",style=GakimType.BodyBold,color=GakimColors.Voice)
                     }
+                    if(s.plan.visits.size<=2) SurfaceCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                            Text("지금 차량 · 배터리 ${s.energy.socPercent?.value?.let { "$it%" } ?: "미확인"} · 주행 가능 ${s.energy.usableRange(s.now)?.value?.toInt()?.let { "${it}km" } ?: "미확인"}",style=GakimType.CaptionBold)
+                            Text("볼일을 말하면, 충전해도 늦지 않는 곳을 찾아 드려요",style=GakimType.Caption)
+                        }
+                    }
                 } else {
                     VisitEditorPanel(visit,s.now,enabled,{ minutes -> vm.edit { c.setStay(visit.id,minutes) } },open)
                 }
             }
-            if(visit==null) Column(Modifier.weight(1f).fillMaxHeight(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(6.dp)) {
+            if(visit==null) Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 MicOrb(s.listening,s.level,{if(enabled) vm.toggleListening()},Modifier.height(238.dp).semantics { contentDescription="음성 입력 마이크" },orbSize=200.dp,dimmed=!enabled)
                 Text(if(s.listening) "듣고 있어요 · 눌러서 마치기" else "눌러서 말하기",style=GakimType.BodyBold,color=GakimColors.Voice)
                 plannerExamples(s.now,s.remotePlacesEnabled,s.nearbyRealMarts,s.exampleDestination).forEach { sentence ->
-                    Box(Modifier.fillMaxWidth().height(76.dp).clip(CardShape).clickable(enabled,role=Role.Button) {
+                    Box(Modifier.fillMaxWidth().heightIn(min=76.dp).clip(CardShape).background(GakimColors.Surface).clickable(enabled,role=Role.Button) {
                         vm.edit { c.onSpeech(SpeechEvent.Final(sentence),"예시 문장") }
-                    }.padding(horizontal=18.dp),contentAlignment=Alignment.CenterStart) {
-                        Text("“$sentence”",style=GakimType.Caption.copy(color=GakimColors.Text),maxLines=2)
+                    }.padding(18.dp),contentAlignment=Alignment.CenterStart) {
+                        Text("“$sentence”",style=GakimType.Caption.copy(fontSize=20.sp,color=GakimColors.Text))
                     }
                 }
             } else Column(Modifier.weight(1f).fillMaxHeight(),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                     s.plan.visits.forEachIndexed { index,v ->
-                        PlannerPill("${index+1} ${v.label}",{editing=v.id},Modifier.weight(1f),enabled,v.id==visit.id)
+                        Text("${index+1} ${v.label}",style=GakimType.Title,color=if(v.id==visit.id) GakimColors.Text else GakimColors.TextDim,
+                            modifier=Modifier.weight(1f).heightIn(min=60.dp).clickable(enabled=enabled) { editing=v.id }.wrapContentHeight())
                     }
                 }
                 Text(if(s.listening) s.partial.ifBlank { "지금 듣고 있어요" } else s.message ?: "시간을 돌려 고르세요 · 5분 단위",
                     style=GakimType.Caption,maxLines=2,overflow=TextOverflow.Ellipsis)
                 PlannerPill("말로 수정",vm::toggleListening,Modifier.fillMaxWidth(),enabled)
-                PlannerPill("편집 마치기",{editing=null},Modifier.fillMaxWidth(),enabled,true)
+                Text("“30분으로” · “오후 3시까지” · “이마트로”",style=GakimType.Caption,color=GakimColors.Voice)
+                Box(Modifier.fillMaxWidth().height(88.dp).clip(CardShape).background(if(enabled) GakimColors.Accent else GakimColors.SurfaceHigh)
+                    .clickable(enabled=enabled,role=Role.Button) { editing=null },contentAlignment=Alignment.Center) {
+                    Text("편집 마치기",style=GakimType.BodyBold,color=if(enabled) GakimColors.Background else GakimColors.TextDim)
+                }
                 if(s.plan.visits.size>1) {
                     Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                         PlannerPill("앞으로",{vm.edit { c.move(visit.id,-1) }},Modifier.weight(1f),enabled && visit!=s.plan.visits.first())
@@ -115,7 +130,7 @@ internal fun VisitEditorPanel(v:Visit,now:LocalDateTime,enabled:Boolean,setStay:
                 PlannerPill(v.place?.name ?: "장소 미정",{open("place:${v.id}")},Modifier.weight(1.4f),enabled)
                 PlannerPill(v.deadline?.let { "${at(it,now)}까지 도착" } ?: "도착 시간 · 제약 없음",{open("time:${v.id}")},Modifier.weight(1.5f),enabled)
             }
-            TimeDial(v.stayMinutes,TimeDialMode.Duration,setStay,Modifier.fillMaxWidth(),enabled=enabled)
+            TimeDial(v.stayMinutes,TimeDialMode.Duration,setStay,Modifier.fillMaxWidth(),enabled=enabled,dialSize=384.dp)
         }
     }
 }
@@ -133,7 +148,7 @@ private fun DurationEditorPreview() {
                     VisitEditorPanel(Visit(1,Activity.SHOP,stayMinutes=minutes,deadline=now.plusHours(3)),now,true,{minutes=it},{})
                 }
                 Column(Modifier.weight(1f)) {
-                    PlannerPill("편집 마치기",{},Modifier.fillMaxWidth(),selected=true)
+                    PrimaryButton("편집 마치기",{},Modifier.fillMaxWidth())
                 }
             }
         }

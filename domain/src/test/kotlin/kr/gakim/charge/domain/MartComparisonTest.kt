@@ -5,7 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** FABLE_BRIEF 1절의 시연 예시 값(가상)이 규칙에서 그대로 나오는지 확인한다. */
+/** 기획 문서 1절의 시연 예시 값(가상)이 규칙에서 그대로 나오는지 확인한다. */
 class MartComparisonTest {
 
     private val usable = listOf(ChargerUnit(true, true, true))

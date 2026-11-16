@@ -31,6 +31,7 @@ data class PlannerState(
     val sourceStatuses: List<kr.gakim.charge.data.remote.SourceStatus> = emptyList(),
     val remotePlacesEnabled: Boolean = false, val nearbyRealMarts: List<Place> = emptyList(), val exampleDestination: String? = null,
     val reviewedRoute: NaviRoute? = null,
+    val keptDestinationName: String? = null,
     val acknowledged: Boolean = false, val parkedConfirmed: Boolean = false, val parkedConfirmedAt:LocalDateTime?=null, val ownHandoff: Boolean = false,
 ) {
     val selected: Option? get() = options.firstOrNull { it.id == selectedId }
@@ -90,6 +91,8 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
     private var readGeneration = 0L
     private var parkGeneration=0L
     private var nextId = 2L
+    private var speechFocus: Long? = null
+    fun focusSpeechVisit(id:Long?) { speechFocus=id }
     private val tripCache = mutableMapOf<String, TripPreview>()
     private val sentPlaces = mutableListOf<Place>()
     private var approvedBaseline: NaviRoute? = null
@@ -104,7 +107,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         if (state.value.busy || state.value.park == ParkState.MOVING) return
         revision++
         val s = change(state.value).copy(revision = revision, phase = ApplyPhase.IDLE, acknowledged = false,
-            approvalKey=null,allowRecommendation=true,applyMessage = "", actualRoute = null, requestSent=false, reviewedRoute=null, loading = false)
+            approvalKey=null,allowRecommendation=true,applyMessage = "", actualRoute = null, requestSent=false, reviewedRoute=null, keptDestinationName=null, loading = false)
         val at = if(s.demoClock) clock().toLocalDate().atTime(13,0) else clock()
         set(calculate(s.copy(now = at)))
     }
@@ -178,7 +181,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
     fun selectMode(id: String) {
         val s=state.value
         if(s.busy || s.park==ParkState.MOVING) return
-        val option=s.comparisonOptions.firstOrNull { it.id==id && it.selectable } ?: return
+        val option=s.comparisonOptions.firstOrNull { it.id==id && it.chargeControlEnabled() } ?: return
         if(s.options.none { it.id==id }) setCharge(option.mode)
         select(id)
     }
@@ -223,6 +226,9 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             PlannerVoiceCommand.OtherPlaces -> setCandidatePage((s.candidatePage+1) % s.candidateGroups().chunked(2).size.coerceAtLeast(1))
             PlannerVoiceCommand.Back -> back()
             PlannerVoiceCommand.Confirm -> Unit // ViewModel invokes the shared CTA path, never a second send path.
+            PlannerVoiceCommand.KeepDestination -> if(s.removedPlaces().isNotEmpty() && s.canKeepDestination()) keepExistingDestination()
+                else set(state.value.copy(message="기존 목적지를 남기려면 화면에서 방문을 확인해 주세요."))
+            PlannerVoiceCommand.ReplaceDestination -> if(s.removedPlaces().isNotEmpty()) setAcknowledged(true)
         }
         return command
     }
@@ -246,7 +252,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         edit { it.copy(plan=it.plan.copy(visits=chosen.visits + Visit(nextId++,Activity.CUSTOM,"방문",
             place=resolvedPlace(destination),stayMinutes=0)),selectedId=null,selectionExplicit=false) }
         val matching=state.value.options.firstOrNull { it.mode==chosen.mode && it.chargeVisitId==chosen.chargeVisitId && it.selectable }
-        if(matching!=null) { select(matching.id); guide() }
+        if(matching!=null) { select(matching.id); guide();set(state.value.copy(keptDestinationName=destination.name)) }
     }
     fun importRoute() {
         val s=state.value;if(s.busy || s.park==ParkState.MOVING) return
@@ -435,7 +441,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         val previous = s.selectedId?.takeIf { id -> s.selectionExplicit && options.any { it.id == id && it.selectable } }
         val searching = repository.searchingPlaces
         val next=s.copy(searchingPlaces = searching, options = options, comparisonOptions = allOptions, chargingSites = sites, selectedId = previous ?: if(s.allowRecommendation) recommend(options)?.id else null, selectionExplicit = previous != null,
-            inputBlocker=when { s.departureExpired -> "출발 예정 시각이 지났어요. 지금 출발하거나 새 시각을 정해 주세요.";candidates.isEmpty() && !searching -> "이 볼일의 장소를 먼저 지정해 주세요.";else->null })
+            inputBlocker=when { s.departureExpired -> "출발 예정 시각이 지났어요. 지금 출발하거나 새 시각을 정해 주세요.";candidates.isEmpty() && !searching -> noNearbyPlace;else->null })
         // A completed handoff has no pending approval to invalidate. Pre-send checks remain unchanged.
         return if(next.phase != ApplyPhase.APPLIED && next.acknowledged && next.approvalKey!=next.selected?.let(::reviewKey)) next.copy(acknowledged=false,approvalKey=null,
             applyMessage="표시된 도착·충전 조건이 바뀌었어요. 다시 확인해 주세요.") else next
@@ -445,18 +451,18 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             SpeechEvent.Listening -> set(state.value.copy(listening = true, partial = "", message = null, speechSource = source))
             is SpeechEvent.Level -> set(state.value.copy(level = event.value.takeIf { it.isFinite() }?.coerceIn(0f,1f) ?: 0f))
             is SpeechEvent.Partial -> set(state.value.copy(partial = event.text, listening = true, speechSource = source))
-            is SpeechEvent.Error -> set(state.value.copy(listening = false, message = "음성 서비스 오류: ${event.reason}. 화면으로 이어서 입력할 수 있어요."))
+            is SpeechEvent.Error -> set(state.value.copy(listening = false, message = if(Regex("확정 문장|인식|NO_MATCH|NO_SPEECH",RegexOption.IGNORE_CASE).containsMatchIn(event.reason)) speechNotUnderstood else "음성 서비스 오류: ${event.reason}. 화면으로 이어서 입력할 수 있어요."))
             is SpeechEvent.Final -> acceptTranscript(event.text, source)
         }
     }
     fun speechStopped() { set(state.value.copy(listening = false, level = 0f)) }
     fun acceptTranscript(text: String, source: String = "테스트 확정 문장") = edit { s ->
-        val result = interpretItinerary(text, s.plan, speechCatalog(), now(), remotePlaces = repository.remotePlacesEnabled)
+        val result = interpretItinerary(text, s.plan, speechCatalog(), now(), focusedVisitId=speechFocus, remotePlaces = repository.remotePlacesEnabled)
         nextId = maxOf(nextId, (result.plan.visits.maxOfOrNull { it.id } ?: 0) + 1)
         val past = result.plan.visits.firstOrNull { v -> v.deadline?.isBefore(now()) == true && s.plan.visits.firstOrNull { it.id == v.id }?.deadline != v.deadline }
         var next = s.copy(plan = result.plan, transcript = text, partial = "", listening = false, speechSource = source,
             applied = result.applied, question = result.question, pendingTime = past?.let { PendingTime(it.id, it.deadline!!) },
-            message = if(result.applied.isEmpty() && result.question == null) "일정으로 반영할 항목을 찾지 못했어요. 필요한 칸을 눌러 수정해 주세요." else null)
+            message = if(result.applied.isEmpty() && result.question == null) speechNotUnderstood else null)
         if (past != null) next = withTime(next, past.id, s.plan.visits.firstOrNull { it.id == past.id }?.deadline)
         next
     }

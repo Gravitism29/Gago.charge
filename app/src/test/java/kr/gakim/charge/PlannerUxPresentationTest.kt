@@ -37,13 +37,15 @@ class PlannerUxPresentationTest {
     }
     @Test fun benefitUsesComputedGainAndBaselineDifference() {
         val site=ChargingSite(Availability.AVAILABLE,overlapVerified=true,evidence=evidence)
-        assertEquals("충전 +18km · 장 보는 동안 · 8분 늦게 끝나요",benefitLine(option(),energy,now,site))
-        assertEquals("충전 +18km · 장 보는 동안 · 끝나는 시각 그대로",benefitLine(option(0),energy,now,site))
+        // Round 2 UX intentionally replaces dot-joined fragments with complete sentences.
+        assertEquals("장 보는 동안 약 +18km(추정) 충전돼요. 8분 더 걸려요.",benefitLine(option(),energy,now,site))
+        assertEquals("장 보는 동안 약 +18km(추정) 충전돼요. 충전해도 끝나는 시각은 같아요.",benefitLine(option(0),energy,now,site))
         assertEquals("+8분 · +18km",option().modeResult(energy,now))
         assertEquals("+0분",option(mode=ChargeMode.NONE).modeResult(energy,now))
     }
     @Test fun unknownEfficiencyDoesNotInventGainOrOverlap() {
-        assertEquals("충전량 미확인 · 끝나는 시각 미확인",benefitLine(option(null),Energy(),now,null))
+        // Unknown readings remain explicit in sentence form.
+        assertEquals("충전량은 아직 확인할 수 없어요. 끝나는 시각은 아직 계산할 수 없어요.",benefitLine(option(null),Energy(),now,null))
         assertNull(option().rangeGain(energy,now.plusMinutes(3)))
         assertFalse(benefitLine(option(),energy,now,null).contains("동안"))
     }
@@ -53,12 +55,15 @@ class PlannerUxPresentationTest {
     }
     @Test fun fallbackCannotRecommendAnUnreachableNoChargeRoute() {
         val baseline=option(mode=ChargeMode.NONE)
-        assertTrue(warningFallback("대기 시간 미확인",option(),baseline).contains("충전 없이 오전 10:45에 끝나요"))
-        assertFalse(warningFallback("대기 시간 미확인",option(),baseline.copy(selectable=false)).contains("충전 없이"))
+        // The fallback is shown once above the warnings, rather than repeated on every line.
+        assertEquals("대기 줄이 있을 수 있어요",warningFallback("대기 시간 미확인",option(),baseline))
+        assertEquals("충전기를 못 쓰면 충전 없이 오전 10:45에 끝나요",chargingFallback(option(),baseline))
+        assertNull(chargingFallback(option(),baseline.copy(selectable=false)))
     }
     @Test fun blockedChargingReportsTheProblemBeforeBenefitsAndCountsEnergyWarning() {
         val blocked=option().copy(selectable=false,energy=EnergyDecision(EnergyStatus.CANNOT_REACH,note="충전 장소까지 주행 가능 거리 부족"))
-        assertEquals("이 방식으로는 갈 수 없어요 · 다른 방식을 골라 주세요",benefitLine(blocked,energy,now,null))
+        // Round 2 UX uses sentences for blocked results too.
+        assertEquals("이 방식으로는 갈 수 없어요. 다른 방식을 골라 주세요.",benefitLine(blocked,energy,now,null))
         assertEquals(listOf("충전 장소까지 주행 가능 거리 부족"),blocked.reviewWarnings())
     }
     @Test fun estimatedGainRoundsDownAndNeedsPowerAndTime() {
@@ -67,5 +72,10 @@ class PlannerUxPresentationTest {
         assertEquals(120,estimatedRangeGain(30,site))
         assertEquals(5,estimatedRangeGain(9,site.copy(effectivePowerKw=Measured(7.0,site.evidence))))
         assertNull(estimatedRangeGain(null,site)); assertNull(estimatedRangeGain(30,site.copy(effectivePowerKw=null)))
+    }
+    @Test fun fullBatteryAndOverlapLabels() {
+        val at=LocalDateTime.of(2026,11,16,12,0)
+        fun soc(v:Int)=Energy(socPercent=Measured(v,Evidence("t",at)))
+        assertTrue(batteryFull(soc(100),at)); assertTrue(batteryFull(soc(95),at)); assertFalse(batteryFull(soc(94),at)); assertFalse(batteryFull(Energy(),at))
     }
 }

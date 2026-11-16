@@ -5,7 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Python 모형에 반영되지 않았던 두 반례(FABLE_BRIEF 5절)에 대한 테스트.
+ * Python 모형에 반영되지 않았던 두 반례(기획 문서 5절)에 대한 테스트.
  * 1. 장만 보는 날에는 픽업 장소를 요구하지 않는다.
  * 2. 몇 시든 괜찮은 날에는 시각 입력을 기다리지 않는다.
  */

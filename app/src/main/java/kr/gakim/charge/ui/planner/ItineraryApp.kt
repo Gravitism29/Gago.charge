@@ -96,7 +96,7 @@ internal fun PlannerPill(text:String,onClick:()->Unit,modifier:Modifier=Modifier
 internal fun PlannerAssistant(s:PlannerState,modifier:Modifier=Modifier) {
     Column(modifier,verticalArrangement=Arrangement.spacedBy(8.dp)) {
         Text(s.assistantLine(),style=GakimType.Assistant,maxLines=2,overflow=TextOverflow.Ellipsis)
-        val message=(if(s.screen==1 && s.demoMartFallback) martFallbackLine else s.message)?.let { if(it.startsWith("음성 서비스 오류")) "마이크 연결을 확인해 주세요. 화면을 눌러 이어갈 수 있어요." else it }
+        val message=(s.presentationIssue()?.line ?: if(s.screen==1 && s.demoMartFallback) martFallbackLine else s.message)?.let { if(it.startsWith("음성 서비스 오류")) "마이크 연결을 확인해 주세요. 화면을 눌러 이어갈 수 있어요." else it }
             ?: s.inputBlocker ?: if(s.screen==2 && s.phase==ApplyPhase.IDLE) "확인한 뒤에만 차량 내비를 바꿔요." else null
         message?.let { Text(it,style=GakimType.Caption,maxLines=2,overflow=TextOverflow.Ellipsis) }
     }
@@ -124,8 +124,9 @@ internal fun PlannerStepMic(s:PlannerState,hints:String,onClick:()->Unit,modifie
     Row(modifier,verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
         CompactMic(s.listening,s.level,onClick,enabled=enabled)
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-            Text(hints,style=GakimType.Caption,color=GakimColors.Voice,maxLines=2)
-            if(s.listening || s.transcript.isNotBlank()) Text(if(s.listening) s.partial.ifBlank { "듣고 있어요…" } else "“${clockText(s.transcript)}”",style=GakimType.Caption,maxLines=1,overflow=TextOverflow.Ellipsis)
+            Text("이렇게 말해 보세요",style=GakimType.Caption.copy(fontSize=16.sp),color=GakimColors.TextDim)
+            Text(hints,style=GakimType.Body.copy(fontSize=22.sp),color=GakimColors.Voice,maxLines=2)
+            if(s.listening || s.screen==0 && s.transcript.isNotBlank()) Text(if(s.listening) s.partial.ifBlank { "듣고 있어요…" } else "“${clockText(s.transcript)}”",style=GakimType.Caption,maxLines=1,overflow=TextOverflow.Ellipsis)
         }
     }
 }

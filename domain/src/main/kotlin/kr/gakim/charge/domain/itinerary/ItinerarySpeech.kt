@@ -13,12 +13,16 @@ sealed interface PlannerVoiceCommand {
     data object OtherPlaces : PlannerVoiceCommand
     data object Confirm : PlannerVoiceCommand
     data object Back : PlannerVoiceCommand
+    data object KeepDestination : PlannerVoiceCommand
+    data object ReplaceDestination : PlannerVoiceCommand
 }
 
 /** Whole-utterance commands: quoted examples, negations and plan edits never authorise a route. */
 fun plannerVoiceCommand(text: String, screen: Int): PlannerVoiceCommand? {
     val words = text.trim().trimEnd('.', '!', '?').replace(Regex("\\s+"), "")
     if (screen == 2) return when (words) {
+        "들를게", "들를게요", "경유", "경유할게", "추가", "추가해줘" -> PlannerVoiceCommand.KeepDestination
+        "빼고", "빼고갈게", "그것만", "거기만" -> PlannerVoiceCommand.ReplaceDestination
         "안내시작", "응", "그래", "가자" -> PlannerVoiceCommand.Confirm
         "아니", "다른곳", "다른곳으로", "다른곳보여줘" -> PlannerVoiceCommand.Back
         else -> null
@@ -28,7 +32,7 @@ fun plannerVoiceCommand(text: String, screen: Int): PlannerVoiceCommand? {
         "이걸로가자", "그걸로가자", "여기로가자" -> PlannerVoiceCommand.Proceed()
         "충전하고", "충전하고갈게", "충전하고갈래" -> PlannerVoiceCommand.Charge(ChargeMode.TOP_UP)
         "충전안해", "충전안할게", "충전없이갈게" -> PlannerVoiceCommand.Charge(ChargeMode.NONE)
-        "충분히충전", "충분히충전하고갈게" -> PlannerVoiceCommand.Charge(ChargeMode.REQUIRED)
+        "충분히충전", "충분히충전하고갈게", "필요한만큼충전" -> PlannerVoiceCommand.Charge(ChargeMode.REQUIRED)
         "다른곳", "다른곳보여줘", "다른곳으로" -> PlannerVoiceCommand.OtherPlaces
         else -> Regex("^(.+?)(?:으로|로)가자$").matchEntire(words)?.groupValues?.get(1)
             ?.takeUnless { it.contains("충전") || it.startsWith("아니") }
@@ -65,6 +69,20 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
     val applied = mutableListOf<String>()
     var question: SpeechQuestion? = null
     val normalized = text.replace(Regex("\\s+"), " ").trim()
+    // Place-only edits on the editor target that visit, including remote names awaiting resolution.
+    val placeCorrection=Regex("^([가-힣A-Za-z][가-힣A-Za-z0-9 ]{1,30}?)(?:으로|로)$").matchEntire(normalized)
+        ?.groupValues?.get(1)?.trim()?.takeIf {
+            KoreanTimeParser.mentions(normalized).isEmpty() && !it.startsWith("아니") &&
+                !Regex("\\d+\\s*(?:시간|분)|충전|시간\\s*제약").containsMatchIn(normalized)
+        }
+    val focusedVisit=current.visits.firstOrNull { it.id==focusedVisitId }
+    if(placeCorrection!=null && focusedVisit!=null) {
+        val matches=catalog.filter { placeCorrection in it.aliases || placeCorrection==it.place.name }.distinctBy { it.place.id }
+        if(matches.size>1) return SpeechUpdate(plan,emptyList(),SpeechQuestion("어느 ${placeCorrection}인가요?",focusedVisit.id,matches.map { it.place }))
+        val place=matches.singleOrNull()?.place
+        if(place==null && !remotePlaces) return SpeechUpdate(plan,emptyList(),SpeechQuestion("장소 이름을 다시 확인해 주세요.",focusedVisit.id))
+        return SpeechUpdate(plan.copy(visits=plan.visits.map { if(it.id==focusedVisit.id) it.copy(place=place,spokenPlace=placeCorrection,placeholder=false) else it }),listOf("${focusedVisit.label} 장소 $placeCorrection"))
+    }
     val correctionOnly = Regex("^(아니|정정|시간은|도착은)").containsMatchIn(normalized)
     val spoken = spokenPlaceMentions(normalized)
     val destination = spoken.lastOrNull { it.destination }

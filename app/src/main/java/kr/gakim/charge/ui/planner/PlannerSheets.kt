@@ -2,11 +2,15 @@ package kr.gakim.charge.ui.planner
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -19,6 +23,7 @@ import kr.gakim.charge.data.*
 import kr.gakim.charge.domain.itinerary.*
 import kr.gakim.charge.ui.theme.*
 import kr.gakim.charge.ui.screens.PrimaryButton
+import kr.gakim.charge.ui.screens.CardShape
 
 @Composable
 internal fun PlannerSheets(s:PlannerState,vm:PlannerViewModel,sheet:String?,close:()->Unit,open:(String)->Unit={}) {
@@ -57,12 +62,16 @@ internal fun PlannerSheets(s:PlannerState,vm:PlannerViewModel,sheet:String?,clos
             val id=sheet.substringAfter(':',"").toLongOrNull()
             val visit=s.plan.visits.firstOrNull { it.id==id }
             when {
-                sheet=="more" -> PlannerSheet("더보기",close,compact=true) {
-                    PlannerPill("내비 일정 가져오기",{vm.edit { c.importRoute() };close()},Modifier.fillMaxWidth(),editable)
+                sheet=="more" -> PlannerSheet("더보기",close) {
+                    Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) {
+                        MoreTile("내비 일정 가져오기","내비에 있는 목적지로 시작해요",{vm.edit { c.importRoute() };close()},Modifier.weight(1f),editable)
+                        MoreTile("문장으로 입력","말 대신 글자로 입력해요",{open("sentence")},Modifier.weight(1f),editable)
+                    }
+                    Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) {
+                        MoreTile("충전 방식 고르기","항상 충전 / 충전 안 함을 정해요",{open("charge")},Modifier.weight(1f),editable)
+                        MoreTile("출발 시각","나중에 출발할 때 정해요",{open("departure")},Modifier.weight(1f),editable)
+                    }
                     Text("현재 내비: ${routeText((s.currentRoute as? NaviRead.Known)?.route)}",style=GakimType.Caption)
-                    PlannerPill("문장으로 입력",{open("sentence")},Modifier.fillMaxWidth(),editable)
-                    PlannerPill("충전 방식 고르기",{open("charge")},Modifier.fillMaxWidth(),editable)
-                    PlannerPill("출발 시각${s.plan.departure?.let { " · ${at(it,s.now)}" }.orEmpty()}",{open("departure")},Modifier.fillMaxWidth(),editable)
                 }
                 sheet=="add" || sheet.startsWith("kind:") -> ActivitySheet(visit,close) { activity,label -> vm.edit { if(visit==null) c.add(activity,label) else c.setActivity(visit.id,activity,label) };close() }
                 sheet.startsWith("place:") && visit!=null -> PlaceSheet(visit,c.allPlaces(visit),close,{vm.searchPlace(it);close()}) { vm.edit { c.setPlace(visit.id,it) };close() }
@@ -210,17 +219,20 @@ private fun SourcesSheet(s:PlannerState,option:Option?,vm:PlannerViewModel,close
     PlannerSheet(if(option==null) "어디서 확인한 정보인가요?" else "가기 전에 확인해 주세요",close) {
         if(option!=null) {
             Text(option.detailsConclusion(),style=GakimType.Assistant)
-            Text("방문과 시간",style=GakimType.Title)
-            Text("✓ ${option.visits.joinToString(" → ") { it.place?.name ?: it.label }}")
-            Text("✓ 모두 끝 ${clock(option.results.lastOrNull()?.finish)} · ${option.deadlineLabel()}")
-            Text("✓ ${option.mode.driverLabel()}")
             val baseline=s.cardOptions.firstOrNull { it.mode==ChargeMode.NONE && it.visits.map { v->v.place?.id }==option.visits.map { v->v.place?.id } }
+            chargingFallback(option,baseline)?.let { Text(it) }
+            Text("방문과 시간",style=GakimType.Title)
+            DetailRow("장소",option.visits.joinToString(" → ") { it.place?.name ?: it.label })
+            DetailRow("끝나는 시각",clock(option.results.lastOrNull()?.finish))
+            DetailRow("충전",option.chargingRow() ?: option.mode.driverLabel())
             val warnings=option.reviewWarnings()
             if(warnings.isNotEmpty() || option.closingNotices.isNotEmpty()) {
                 Text("확인하고 갈 내용",style=GakimType.Title,color=GakimColors.Tight)
                 option.closingNotices.forEach { Text("⚠ ${it.label} → 문을 연 다른 장소를 골라 주세요",color=GakimColors.Tight) }
-                warnings.forEach { Text("⚠ ${warningFallback(it,option,baseline)}",color=GakimColors.Tight) }
+                warnings.map { warningFallback(it,option,baseline) }.distinct().forEach { Text("⚠ $it",color=GakimColors.Tight) }
             }
+            if(option.mode!=ChargeMode.NONE) PrimaryButton("충전 없이 가기",{baseline?.let { vm.stopListening();vm.controller.selectMode(it.id);close() }},Modifier.fillMaxWidth(),
+                baseline?.chargeControlEnabled()==true && !s.busy && s.park!=ParkState.MOVING)
             val related=s.cardOptions.filter { it.visits.map { v->v.place?.id }==option.visits.map { v->v.place?.id } && it.mode==option.mode }
             if(related.map { it.chargeVisitId }.distinct().size>1) {
                 Text("어디에서 충전할까요?",style=GakimType.Title)
@@ -239,6 +251,23 @@ private fun SourcesSheet(s:PlannerState,option:Option?,vm:PlannerViewModel,close
             option?.closingNotices?.forEach { Text(sourceLabel(it.source),style=GakimType.Caption) }
             option?.chargingNote?.takeIf { it.isNotBlank() }?.let { Text(sourceLabel(it),style=GakimType.Caption) }
         }
+    }
+}
+
+@Composable
+private fun DetailRow(label:String,value:String) {
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(24.dp)) {
+        Text(label,style=GakimType.Caption,modifier=Modifier.width(140.dp))
+        Text(value,style=GakimType.BodyBold,modifier=Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun MoreTile(title:String,description:String,click:()->Unit,modifier:Modifier,enabled:Boolean) {
+    Column(modifier.heightIn(min=132.dp).clip(CardShape).background(GakimColors.SurfaceHigh).border(2.dp,GakimColors.Outline,CardShape)
+        .clickable(enabled=enabled,onClick=click).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        Text(title,style=GakimType.BodyBold)
+        Text(description,style=GakimType.Caption)
     }
 }
 

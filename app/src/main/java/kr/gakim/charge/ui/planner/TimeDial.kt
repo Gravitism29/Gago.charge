@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDateTime
 import kotlin.math.*
@@ -61,6 +62,7 @@ internal fun TimeDial(
     now: LocalDateTime = LocalDateTime.now(),
     clockRole: String = "도착 시각",
     onInvalidTime: () -> Unit = {},
+    dialSize: Dp = 320.dp,
 ) {
     val current by rememberUpdatedState(value)
     val change by rememberUpdatedState(onValueChange)
@@ -95,7 +97,7 @@ internal fun TimeDial(
         else "$clockRole ${dialClockLabel(value, spoken = true)}"
     val picks = if (mode == TimeDialMode.Duration) listOf(15, 30, 45, 60, 90, 120) else nextDialHalfHours(now)
 
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier, horizontalAlignment=Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (mode == TimeDialMode.Clock) {
             Row(Modifier.width(320.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("오전", "오후").forEachIndexed { index, label ->
@@ -106,7 +108,7 @@ internal fun TimeDial(
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             DialStepButton("−", "$description · 5분 줄이기", interactive && value > if (mode == TimeDialMode.Duration) 5 else 0) { publish(value - 5) }
-            Box(Modifier.size(320.dp).alpha(if (interactive) 1f else .35f)
+            Box(Modifier.size(dialSize).alpha(if (interactive) 1f else .35f)
                 .semantics(mergeDescendants = true) {
                     contentDescription = description
                     progressBarRangeInfo = ProgressBarRangeInfo(value.toFloat(),
@@ -261,7 +263,7 @@ internal fun TimeDial(
         }
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(if (mode == TimeDialMode.Duration) "빠르게 고르기" else "가까운 시각", style = GakimType.Caption)
-                picks.chunked(if(mode==TimeDialMode.Duration) 3 else 2).forEach { row ->
+                picks.chunked(if(mode==TimeDialMode.Duration) 6 else 2).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { pick ->
                             val label = if (mode == TimeDialMode.Duration) "${pick}분"

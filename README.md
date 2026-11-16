@@ -4,7 +4,7 @@ Pleos Connect용 전기차 일정 앱입니다. 볼일을 보는 동안 충전�
 
 예를 들어 “25분 장 보고 4시 10분까지 학교 가야 해”라고 말하면 마트와 학교가 방문 순서에 들어갑니다. 시간이나 장소는 화면에서 고칠 수 있고, 원하는 경로를 확인하면 차량 내비에 반영합니다.
 
-[APK 다운로드](https://github.com/Gravitism29/Gago.charge/raw/refs/heads/main/apk/%EA%B0%80%EB%8A%94%20%EA%B9%80%EC%97%90%20%EC%B6%A9%EC%A0%84_%EA%B0%80%EB%8A%94%20%EA%B9%80%EC%97%90%20%EC%B6%A9%EC%A0%84_release.apk) · 0.4.0 · `가는 김에 충전_가는 김에 충전_release.apk` · Pleos 에뮬레이터용(디버그 서명)
+[APK 다운로드](https://github.com/Gravitism29/Gago.charge/raw/refs/heads/main/apk/%EA%B0%80%EB%8A%94%20%EA%B9%80%EC%97%90%20%EC%B6%A9%EC%A0%84_%EA%B0%80%EB%8A%94%20%EA%B9%80%EC%97%90%20%EC%B6%A9%EC%A0%84_release.apk) · 0.4.0 · `가는 김에 충전_가는 김에 충전_release.apk` · 서명된 release 빌드
 
 ## 사용하는 데이터
 

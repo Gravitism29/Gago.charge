@@ -54,8 +54,9 @@ class PlannerCompareLayoutTest {
         assertEquals(1,single.scheduleRows().size)
     }
     @Test fun scheduleRowsComeOnlyFromComputedResults() {
+        // UX pass intentionally standardises schedule clocks on 12-hour labels.
         val rows=option().scheduleRows()
-        assertEquals(listOf("13:12","13:50"),rows.map { it.arrival })
+        assertEquals(listOf("오후 1:12","오후 1:50"),rows.map { it.arrival })
         assertEquals(listOf("은평점","학교"),rows.map { it.place })
         assertEquals(listOf("장보기 20분","픽업 10분"),rows.map { it.detail })
         assertEquals(listOf(null,110L),rows.map { it.slackMinutes })

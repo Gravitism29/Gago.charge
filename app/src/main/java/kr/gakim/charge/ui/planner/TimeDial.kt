@@ -74,7 +74,7 @@ internal fun TimeDial(
         if (dragging) animated.snapTo(value.toFloat())
         else animated.animateTo(value.toFloat(), tween(200, easing = DialSpring))
     }
-    val thumbSize by animateDpAsState(if (pressed) 52.dp else 44.dp, tween(100), label = "dial thumb")
+    val thumbSize by animateDpAsState(if (pressed) 60.dp else 52.dp, tween(100), label = "dial thumb")
     val interactive = enabled && active
     val publish: (Int) -> Boolean = { requested ->
         val next = snapDialValue(requested.toFloat(), mode)
@@ -93,7 +93,7 @@ internal fun TimeDial(
     val publishLatest by rememberUpdatedState(publish)
     val description = if (mode == TimeDialMode.Duration) "머무는 시간 ${value}분"
         else "$clockRole ${dialClockLabel(value, spoken = true)}"
-    val picks = if (mode == TimeDialMode.Duration) listOf(15, 30, 45, 60, 90) else nextDialHalfHours(now)
+    val picks = if (mode == TimeDialMode.Duration) listOf(15, 30, 45, 60, 90, 120) else nextDialHalfHours(now)
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (mode == TimeDialMode.Clock) {
@@ -105,6 +105,7 @@ internal fun TimeDial(
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            DialStepButton("−", "$description · 5분 줄이기", interactive && value > if (mode == TimeDialMode.Duration) 5 else 0) { publish(value - 5) }
             Box(Modifier.size(320.dp).alpha(if (interactive) 1f else .35f)
                 .semantics(mergeDescendants = true) {
                     contentDescription = description
@@ -119,7 +120,7 @@ internal fun TimeDial(
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val center = Offset(size.width / 2f, size.height / 2f)
-                        val radius = size.width / 2f - 40.dp.toPx()
+                        val radius = size.width / 2f - 64.dp.toPx()
                         // The generous annulus includes the thumb and bezel, but leaves the centre alone.
                         if (abs((down.position - center).getDistance() - radius) > 44.dp.toPx()) return@awaitEachGesture
                         down.consume()
@@ -164,12 +165,12 @@ internal fun TimeDial(
                 }, contentAlignment = Alignment.Center) {
                 val rendered = if (dragging) value.toFloat() else animated.value
                 Canvas(Modifier.fillMaxSize()) {
-                    val radius = size.minDimension / 2f - 40.dp.toPx()
+                    val radius = size.minDimension / 2f - 64.dp.toPx()
                     val topLeft = center - Offset(radius, radius)
                     val arcSize = Size(radius * 2, radius * 2)
                     val laps = dialLaps(rendered)
                     val sweep = if (mode == TimeDialMode.Duration && laps.completed > 0) 360f else laps.remainder * 6f
-                    val gradient = Brush.sweepGradient(GakimColors.BrandStops, center)
+                    val gradient = Brush.sweepGradient(listOf(GakimColors.Accent,GakimColors.Accent), center)
                     val stroke = 26.dp.toPx()
                     drawCircle(GakimColors.Outline, radius, style = Stroke(stroke))
                     if (pressed) drawIntoCanvas { canvas ->
@@ -178,7 +179,7 @@ internal fun TimeDial(
                             strokeWidth = stroke + 10.dp.toPx()
                             strokeCap = Paint.Cap.ROUND
                             shader = SweepGradient(center.x, center.y,
-                                intArrayOf(GakimColors.Voice.toArgb(), GakimColors.Accent.toArgb()), null)
+                                intArrayOf(GakimColors.Accent.toArgb(), GakimColors.Accent.toArgb()), null)
                             alpha = 77
                             maskFilter = BlurMaskFilter(10.dp.toPx(), BlurMaskFilter.Blur.NORMAL)
                         }
@@ -202,8 +203,8 @@ internal fun TimeDial(
                     }
                     val bezel = size.minDimension / 2f - 8.dp.toPx()
                     for (tick in 0 until 60) {
-                        // Keep all twelve long major ticks; their labels sit just clockwise of them.
-                        if (tick % 15 in 1..2) continue
+                        // Leave a clear cardinal label zone, outside even the 60dp pressed thumb.
+                        if (tick % 15 in 0..1 || tick % 15 == 14) continue
                         val a = (tick * 6f - 90f) * PI.toFloat() / 180f
                         val major = tick % 5 == 0
                         val unit = Offset(cos(a), sin(a))
@@ -217,8 +218,8 @@ internal fun TimeDial(
                     drawIntoCanvas { canvas ->
                         val labels = if (mode == TimeDialMode.Duration) listOf("0", "15", "30", "45") else listOf("12", "3", "6", "9")
                         labels.forEachIndexed { i, label ->
-                            val a = (i * 90f - 82.5f) * PI.toFloat() / 180f
-                            val p = center + Offset(cos(a), sin(a)) * (bezel - 7.dp.toPx())
+                            val a = (i * 90f - 90f) * PI.toFloat() / 180f
+                            val p = center + Offset(cos(a), sin(a)) * (bezel - 12.dp.toPx())
                             canvas.nativeCanvas.drawText(label, p.x, p.y - (labelPaint.ascent() + labelPaint.descent()) / 2, labelPaint)
                         }
                     }
@@ -238,7 +239,7 @@ internal fun TimeDial(
                         canvas.nativeCanvas.drawCircle(thumb.x, thumb.y + 3.dp.toPx(), thumbSize.toPx() / 2, paint)
                     }
                     drawCircle(Color.White, thumbSize.toPx() / 2, thumb)
-                    drawCircle(Brush.linearGradient(GakimColors.BrandStops, thumb - Offset(20.dp.toPx(), 20.dp.toPx()), thumb + Offset(20.dp.toPx(), 20.dp.toPx())),
+                    drawCircle(GakimColors.Accent,
                         thumbSize.toPx() / 2 - 4.dp.toPx(), thumb, style = Stroke(4.dp.toPx()))
                 }
                 Column(Modifier.clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -256,30 +257,27 @@ internal fun TimeDial(
                     }
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                DialStepButton("+", "$description · 5분 늘리기", interactive && value < if (mode == TimeDialMode.Duration) 180 else 2875) { publish(value + 5) }
-                DialStepButton("−", "$description · 5분 줄이기", interactive && value > if (mode == TimeDialMode.Duration) 5 else 0) { publish(value - 5) }
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            DialStepButton("+", "$description · 5분 늘리기", interactive && value < if (mode == TimeDialMode.Duration) 180 else 2875) { publish(value + 5) }
+        }
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(if (mode == TimeDialMode.Duration) "빠르게 고르기" else "가까운 시각", style = GakimType.Caption)
-                picks.chunked(2).forEach { row ->
+                picks.chunked(if(mode==TimeDialMode.Duration) 3 else 2).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { pick ->
                             val label = if (mode == TimeDialMode.Duration) "${pick}분"
                                 else (if (pick >= MINUTES_PER_DAY) "내일 " else "") + clock(dialClockTime(pick, now))
-                            PlannerPill(label, { publish(pick) }, Modifier.weight(1f), interactive, value == pick)
+                            PlannerPill(label, { publish(pick) }, Modifier.weight(1f).height(64.dp), interactive, value == pick)
                         }
                         if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }
-        }
     }
 }
 
 @Composable
 private fun DialStepButton(label: String, description: String, enabled: Boolean, click: () -> Unit) {
-    Box(Modifier.size(96.dp).clip(CircleShape).background(GakimColors.SurfaceHigh)
+    Box(Modifier.size(64.dp).clip(CircleShape).background(GakimColors.SurfaceHigh)
         .border(2.dp, if (enabled) GakimColors.Voice else GakimColors.Outline, CircleShape)
         .semantics { contentDescription = description }
         .clickable(enabled = enabled, role = Role.Button, onClick = click), contentAlignment = Alignment.Center) {

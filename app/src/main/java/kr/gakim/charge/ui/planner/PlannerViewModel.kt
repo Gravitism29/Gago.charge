@@ -16,9 +16,9 @@ import kr.gakim.charge.domain.itinerary.*
 import org.json.JSONArray
 import org.json.JSONObject
 
-class PlannerViewModel(application: Application) : AndroidViewModel(application) {
+class PlannerViewModel(application: Application) : AndroidViewModel(application), PlannerActions {
     private var gateways = GatewayFactory.create(application, application.resources.getBoolean(R.bool.use_fakes_default))
-    val controller = ItineraryController(gateways, repository = kr.gakim.charge.data.remote.remoteRepository(application), journal = PreferencesRouteJournal(application))
+    override val controller = ItineraryController(gateways, repository = kr.gakim.charge.data.remote.remoteRepository(application), journal = PreferencesRouteJournal(application))
     val state = controller.state
     private var energyJob: Job? = null
     private var readJob: Job? = null
@@ -46,7 +46,7 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
         previewPlan = signature
         calcJob = viewModelScope.launch { controller.previewRoutes() }
     }
-    fun edit(action: () -> Unit) {
+    override fun edit(action: () -> Unit) {
         if (state.value.busy) return
         stopListening()
         val wasDemo = state.value.demoEnergy
@@ -54,7 +54,7 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
         if (wasDemo && !state.value.demoEnergy) { refresh(); return }
         preview()
     }
-    fun refresh() {
+    override fun refresh() {
         if (state.value.busy) return
         stopListening(); readJob?.cancel()
         readJob = viewModelScope.launch { controller.refresh(); preview() }
@@ -65,7 +65,7 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
         gateways = GatewayFactory.create(getApplication(), enabled)
         controller.replaceGateways(gateways); observeEnergy(); refresh()
     }
-    fun toggleListening() {
+    override fun toggleListening() {
         if (state.value.busy || state.value.park == ParkState.MOVING) return
         if(speechJob?.isActive == true) { stopListening(); return }
         gateways.speechOutput.stop()
@@ -79,8 +79,10 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
                     if (token == speechGeneration) {
                         if (event is SpeechEvent.Final) {
                             finalReceived=true
-                            controller.onSpeech(event, if(source.usingFakes) "모의 SpeechGateway" else "공식 SpeechToText · 확정")
-                            preview()
+                            val speechSource=if(source.usingFakes) "모의 SpeechGateway" else "공식 SpeechToText · 확정"
+                            val command=controller.handleVoiceCommand(event.text,speechSource)
+                            if(command==PlannerVoiceCommand.Confirm) startGuidance()
+                            else if(command==null) { controller.onSpeech(event,speechSource);preview() }
                             if(state.value.tts) source.speechOutput.speak(state.value.applied.joinToString(". "))
                             speechGeneration++
                         } else controller.onSpeech(event, if(source.usingFakes) "모의 SpeechGateway" else "공식 SpeechToText")
@@ -93,13 +95,16 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
             finally { if(token == speechGeneration) controller.speechStopped() }
         }
     }
-    fun stopListening() { speechGeneration++; speechJob?.cancel(); speechJob = null; controller.speechStopped() }
+    override fun stopListening() { speechGeneration++; speechJob?.cancel(); speechJob = null; controller.speechStopped() }
+    override fun startGuidance() {
+        if(controller.prepareGuidance()) confirm()
+    }
     fun confirm() {
         if (applyJob?.isActive == true) return
         stopListening(); calcJob?.cancel(); readJob?.cancel()
         applyJob = viewModelScope.launch { controller.confirm() }
     }
-    fun back() { if(!state.value.busy) { stopListening(); controller.back() } }
+    override fun back() { if(!state.value.busy) { stopListening(); controller.back() } }
     fun searchPlace(keyword:String) {
         if(state.value.busy) return
         stopListening()
@@ -124,7 +129,12 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
         if(!state.value.ownHandoff) { readJob?.cancel(); calcJob?.cancel(); applyJob?.cancel(); controller.stop() }
     }
     fun consumeReturnToFront() = controller.consumeReturnToFront()
-    fun debugTranscript(text: String) { if(BuildConfig.DEBUG) edit { controller.onSpeech(SpeechEvent.Final(text), "ADB 확정문장 주입 · STT 엔진 미시험") } }
+    fun debugTranscript(text: String) {
+        if(!BuildConfig.DEBUG) return
+        val command=controller.handleVoiceCommand(text,"ADB 확정문장 주입 · STT 엔진 미시험")
+        if(command==PlannerVoiceCommand.Confirm) startGuidance()
+        else if(command==null) edit { controller.onSpeech(SpeechEvent.Final(text), "ADB 확정문장 주입 · STT 엔진 미시험") }
+    }
     fun debugAction(name: String) {
         if(!BuildConfig.DEBUG) return
         when(name) {

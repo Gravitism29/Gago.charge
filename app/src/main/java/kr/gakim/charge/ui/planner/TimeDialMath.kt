@@ -69,10 +69,5 @@ internal fun nextDialHalfHours(now: LocalDateTime): List<Int> {
 }
 
 internal fun dialClockLabel(value: Int, spoken: Boolean = false): String {
-    val minutes = Math.floorMod(value, MINUTES_PER_DAY)
-    val hour = minutes / 60
-    val h = (hour + 11) % 12 + 1
-    val m = minutes % 60
-    val period = if (hour < 12) "오전" else "오후"
-    return if (spoken) "$period ${h}시 ${m}분" else "$period $h:${m.toString().padStart(2, '0')}"
+    return kr.gakim.charge.domain.itinerary.itineraryClock(java.time.LocalDate.of(2000,1,1).atStartOfDay().plusMinutes(value.toLong()))
 }

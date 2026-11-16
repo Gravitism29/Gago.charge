@@ -35,7 +35,10 @@ fun ItineraryApp(s: PlannerState, vm: PlannerViewModel) {
     Box(Modifier.fillMaxSize().background(GakimColors.Background)) {
         Column(Modifier.fillMaxSize().padding(horizontal=24.dp, vertical=12.dp), verticalArrangement=Arrangement.spacedBy(12.dp)) {
             PlannerChrome(s,vm) { sheet=it }
-            if(s.rangeUnknown) Text(rangeNotice,style=GakimType.Caption,color=GakimColors.TextDim)
+            if(s.rangeUnknown) Row(Modifier.fillMaxWidth().clip(CardShape).background(GakimColors.Tight.copy(alpha=.12f)).padding(horizontal=16.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                Glyph(Icon.WARN,GakimColors.Tight,24.dp)
+                Text(rangeNotice,style=GakimType.CaptionBold,color=GakimColors.Tight)
+            }
             if(s.park==ParkState.MOVING) {
                 Row(Modifier.fillMaxWidth().height(76.dp).clip(CardShape).background(GakimColors.SurfaceHigh).padding(20.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
                     Glyph(Icon.LOCK,GakimColors.Tight)
@@ -50,15 +53,14 @@ fun ItineraryApp(s: PlannerState, vm: PlannerViewModel) {
                 }
             }
         }
-        PlannerSheets(s,vm,sheet,{sheet=null})
+        PlannerSheets(s,vm,sheet,{sheet=null},{sheet=it})
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PlannerChrome(s:PlannerState,vm:PlannerViewModel,open:(String)->Unit) {
-    val hasDemo=s.demoClock || s.options.any { option -> option.evidence.any { it.demo } || option.visits.any { it.place?.demo==true } } ||
-        s.plan.visits.any { it.place?.demo==true } || listOfNotNull(s.energy.socPercent?.evidence,s.energy.rangeKm?.evidence,s.energy.kmPerKwh?.evidence).any { it.demo }
+    val hasDemo=s.hasDemoData
     Row(Modifier.fillMaxWidth().height(84.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
         Text("가는 김에 충전",style=GakimType.Title.copy(fontSize=24.sp),modifier=Modifier.combinedClickable(onClick={},onLongClick={if(BuildConfig.DEBUG) open("dev")}).height(76.dp).wrapContentHeight())
         Row(Modifier.weight(1f),horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically) {
@@ -71,7 +73,7 @@ private fun PlannerChrome(s:PlannerState,vm:PlannerViewModel,open:(String)->Unit
         }
         Pill((s.energy.socPercent?.value?.let { "$it%" } ?: "배터리 ?") + if(s.demoEnergy) " 시연" else "",icon=Icon.BATTERY,color=if(s.demoEnergy) GakimColors.Demo else GakimColors.Text)
         Pill((if(s.rangeUnknown) "주행 거리 ?" else "${s.energy.rangeKm!!.value.toInt()}km") + if(s.demoEnergy) " 시연" else "",color=if(s.demoEnergy) GakimColors.Demo else GakimColors.Text)
-        Pill(if(s.demoClock) "시연 13:00" else clock(s.now),color=if(s.demoClock) GakimColors.Demo else GakimColors.Text)
+        Pill(if(s.demoClock) "시연 ${clock(s.now)}" else clock(s.now),color=if(s.demoClock) GakimColors.Demo else GakimColors.Text)
         Box(Modifier.height(76.dp).clip(PillShape).clickable(role=Role.Button) { open("sources") },contentAlignment=Alignment.Center) {
             Pill(if(hasDemo) "시연 데이터" else "실시간 데이터",color=if(hasDemo) GakimColors.Demo else GakimColors.Voice,outline=true)
         }
@@ -102,9 +104,9 @@ internal fun PlannerAssistant(s:PlannerState,modifier:Modifier=Modifier) {
 
 /** Full-size in-app surface, deliberately in the app window rather than a platform dialog. */
 @Composable
-internal fun PlannerSheet(title:String,close:()->Unit,content:@Composable ColumnScope.()->Unit) {
+internal fun PlannerSheet(title:String,close:()->Unit,compact:Boolean=false,content:@Composable ColumnScope.()->Unit) {
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=.72f)).clickable(onClick=close),contentAlignment=Alignment.Center) {
-        Column(Modifier.fillMaxWidth(.84f).fillMaxHeight(.94f).clip(CardShape).background(GakimColors.Surface).border(2.dp,GakimColors.Outline,CardShape).clickable {}.padding(28.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxWidth(if(compact) .62f else .84f).fillMaxHeight(if(compact) .74f else .94f).clip(CardShape).background(GakimColors.Surface).border(2.dp,GakimColors.Outline,CardShape).clickable {}.padding(28.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
                 Text(title,style=GakimType.Title,modifier=Modifier.weight(1f))
                 PlannerPill("닫기",close,Modifier.width(112.dp))
@@ -112,6 +114,18 @@ internal fun PlannerSheet(title:String,close:()->Unit,content:@Composable Column
             CompositionLocalProvider(LocalTextStyle provides GakimType.Body) {
                 Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp),content=content)
             }
+        }
+    }
+}
+
+/** Step hints stay visible after recognition; the heard text is secondary feedback. */
+@Composable
+internal fun PlannerStepMic(s:PlannerState,hints:String,onClick:()->Unit,modifier:Modifier=Modifier,enabled:Boolean=true) {
+    Row(modifier,verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+        CompactMic(s.listening,s.level,onClick,enabled=enabled)
+        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+            Text(hints,style=GakimType.Caption,color=GakimColors.Voice,maxLines=2)
+            if(s.listening || s.transcript.isNotBlank()) Text(if(s.listening) s.partial.ifBlank { "듣고 있어요…" } else "“${clockText(s.transcript)}”",style=GakimType.Caption,maxLines=1,overflow=TextOverflow.Ellipsis)
         }
     }
 }

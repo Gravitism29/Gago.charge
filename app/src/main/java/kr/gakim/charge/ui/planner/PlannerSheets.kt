@@ -21,7 +21,7 @@ import kr.gakim.charge.ui.theme.*
 import kr.gakim.charge.ui.screens.PrimaryButton
 
 @Composable
-internal fun PlannerSheets(s:PlannerState,vm:PlannerViewModel,sheet:String?,close:()->Unit) {
+internal fun PlannerSheets(s:PlannerState,vm:PlannerViewModel,sheet:String?,close:()->Unit,open:(String)->Unit={}) {
     val c=vm.controller
     val editable=!s.busy && s.park!=ParkState.MOVING
     val import=s.pendingImport
@@ -49,7 +49,7 @@ internal fun PlannerSheets(s:PlannerState,vm:PlannerViewModel,sheet:String?,clos
                 PlannerPill("출발 시각",{vm.edit { c.resolveTimeRole(true) }},Modifier.fillMaxWidth(),editable)
                 PlannerPill("마지막 장소 도착 마감",{vm.edit { c.resolveTimeRole(false) }},Modifier.fillMaxWidth(),editable)
             }
-            question.places.forEach { p -> PlannerPill("${p.name} · ${p.address}",{vm.edit { question.visitId?.let { c.setPlace(it,p) } }},Modifier.fillMaxWidth(),editable) }
+            question.places.take(4).forEach { p -> PlannerPill(placeChoiceLabel(p),{vm.edit { question.visitId?.let { c.setPlace(it,p) } }},Modifier.fillMaxWidth(),editable) }
             question.timeChoices.forEach { time -> PlannerPill("${at(time,s.now)} ${if(question.visitId==null) "출발" else "도착"}",{vm.edit { c.resolveTimeChoice(question.visitId,time) }},Modifier.fillMaxWidth(),editable) }
             PlannerPill("화면에서 수정",dismiss,Modifier.fillMaxWidth())
         }
@@ -57,13 +57,20 @@ internal fun PlannerSheets(s:PlannerState,vm:PlannerViewModel,sheet:String?,clos
             val id=sheet.substringAfter(':',"").toLongOrNull()
             val visit=s.plan.visits.firstOrNull { it.id==id }
             when {
+                sheet=="more" -> PlannerSheet("더보기",close,compact=true) {
+                    PlannerPill("내비 일정 가져오기",{vm.edit { c.importRoute() };close()},Modifier.fillMaxWidth(),editable)
+                    Text("현재 내비: ${routeText((s.currentRoute as? NaviRead.Known)?.route)}",style=GakimType.Caption)
+                    PlannerPill("문장으로 입력",{open("sentence")},Modifier.fillMaxWidth(),editable)
+                    PlannerPill("충전 방식 고르기",{open("charge")},Modifier.fillMaxWidth(),editable)
+                    PlannerPill("출발 시각${s.plan.departure?.let { " · ${at(it,s.now)}" }.orEmpty()}",{open("departure")},Modifier.fillMaxWidth(),editable)
+                }
                 sheet=="add" || sheet.startsWith("kind:") -> ActivitySheet(visit,close) { activity,label -> vm.edit { if(visit==null) c.add(activity,label) else c.setActivity(visit.id,activity,label) };close() }
                 sheet.startsWith("place:") && visit!=null -> PlaceSheet(visit,c.allPlaces(visit),close,{vm.searchPlace(it);close()}) { vm.edit { c.setPlace(visit.id,it) };close() }
                 sheet=="departure" || sheet.startsWith("time:") && visit!=null -> ClockSheet(if(visit==null) "언제 출발할까요?" else "${visit.place?.name ?: visit.label}에 몇 시까지 갈까요?",if(visit==null) s.plan.departure else visit.deadline,s.now,visit!=null,editable,close) { vm.edit { c.setTime(visit?.id,it) };close() }
                 sheet=="sentence" -> SentenceSheet(close) { vm.edit { c.onSpeech(SpeechEvent.Final(it),"직접 입력 문장") };close() }
                 sheet=="charge" -> ChargeSheet(s,close) { mode,reserve -> vm.edit { c.setCharge(mode);c.setReserve(reserve) };close() }
                 sheet=="dev" && BuildConfig.DEBUG -> DevSheet(s,vm,close)
-                sheet=="sources" || sheet.startsWith("details:") -> SourcesSheet(s,s.options.firstOrNull { it.id==sheet.removePrefix("details:") },vm,close)
+                sheet=="sources" || sheet.startsWith("details:") -> SourcesSheet(s,s.cardOptions.firstOrNull { it.id==sheet.removePrefix("details:") },vm,close)
             }
         }
     }
@@ -198,27 +205,40 @@ private fun ChargeSheet(s:PlannerState,close:()->Unit,apply:(ChargeMode,Double)-
 private fun SourcesSheet(s:PlannerState,option:Option?,vm:PlannerViewModel,close:()->Unit) {
     val evidence=(if(option!=null) option.evidence else s.options.flatMap { it.evidence })+
         listOfNotNull(s.energy.rangeKm?.evidence,s.energy.socPercent?.evidence,s.energy.kmPerKwh?.evidence)
+    var expanded by remember { mutableStateOf(false) }
+    val places=(option?.visits ?: s.options.flatMap { it.visits }).mapNotNull { it.place }.distinctBy { it.id }
     PlannerSheet(if(option==null) "어디서 확인한 정보인가요?" else "가기 전에 확인해 주세요",close) {
-        if(option==null) {
-            Text(if(s.usingFakes) "차량·내비도 시연 값이에요." else "차량 잔량과 내비 경로는 차량에서 읽었어요.")
-            s.sourceStatuses.forEach { Text("${it.source} · ${it.at?.let { time -> at(time,s.now) } ?: "미조회"} · ${it.status}") }
-            if(!s.demoRoutes && s.options.any { o -> o.visits.any { it.place?.demo==true } }) Text("일부 장소는 시연 목록에서 골랐어요. 실제 점포 위치로 확인한 자료는 아니에요.")
-            Text("내비를 읽은 시각: ${s.routeReadAt?.let { at(it,s.now) } ?: "아직 받지 못했어요"}")
-        } else {
-            Text(option.visits.joinToString(" → ") { it.place?.name ?: it.label },style=GakimType.Title)
-            Text(option.mode.driverLabel())
-            option.closingNotices.forEach { Text("${it.label}\n${it.source}") }
-            val warnings=(option.conditions+option.energy.note).distinct()
-            warnings.forEach { Text(it.replace("필요한 양까지","충분히 충전").replace("typed availability","충전기 상태")) }
-            val related=s.options.filter { it.visits.map { v -> v.place?.id }==option.visits.map { v -> v.place?.id } && it.mode==option.mode }
+        if(option!=null) {
+            Text(option.detailsConclusion(),style=GakimType.Assistant)
+            Text("방문과 시간",style=GakimType.Title)
+            Text("✓ ${option.visits.joinToString(" → ") { it.place?.name ?: it.label }}")
+            Text("✓ 모두 끝 ${clock(option.results.lastOrNull()?.finish)} · ${option.deadlineLabel()}")
+            Text("✓ ${option.mode.driverLabel()}")
+            val baseline=s.cardOptions.firstOrNull { it.mode==ChargeMode.NONE && it.visits.map { v->v.place?.id }==option.visits.map { v->v.place?.id } }
+            val warnings=option.reviewWarnings()
+            if(warnings.isNotEmpty() || option.closingNotices.isNotEmpty()) {
+                Text("확인하고 갈 내용",style=GakimType.Title,color=GakimColors.Tight)
+                option.closingNotices.forEach { Text("⚠ ${it.label} → 문을 연 다른 장소를 골라 주세요",color=GakimColors.Tight) }
+                warnings.forEach { Text("⚠ ${warningFallback(it,option,baseline)}",color=GakimColors.Tight) }
+            }
+            val related=s.cardOptions.filter { it.visits.map { v->v.place?.id }==option.visits.map { v->v.place?.id } && it.mode==option.mode }
             if(related.map { it.chargeVisitId }.distinct().size>1) {
                 Text("어디에서 충전할까요?",style=GakimType.Title)
-                related.forEach { target -> target.chargeVisitId?.let { id -> PlannerPill(target.visits.first { it.id==id }.place?.name ?: "충전 장소",{vm.controller.select(target.id);close()},Modifier.fillMaxWidth(),target.selectable && !s.busy && s.park!=ParkState.MOVING,target.id==s.selectedId) } }
+                related.forEach { target -> target.chargeVisitId?.let { id -> PlannerPill(target.visits.first { it.id==id }.place?.name ?: "충전 장소",{vm.controller.selectMode(target.id);close()},Modifier.fillMaxWidth(),target.selectable && !s.busy && s.park!=ParkState.MOVING,target.id==s.selectedId) } }
             }
+        } else {
+            Text(if(s.usingFakes) "차량·내비도 시연 값이에요." else "차량 잔량과 내비 경로는 차량에서 읽었어요.",style=GakimType.Title)
+            s.energy.rangeKm?.let { Text("차량 주행 가능 거리: ${it.value}km${if(s.rangeUnknown) " · 미확인으로 처리" else ""}") }
         }
-        s.energy.rangeKm?.let { Text("${if(it.evidence.demo) "시연 주행 거리" else "차량이 보고한 주행 거리"}: ${it.value}km${if(s.rangeUnknown) " · 주행 거리 미확인으로 처리" else ""}") }
-        (option?.visits ?: s.options.flatMap { it.visits }).mapNotNull { it.place }.distinctBy { it.id }.forEach { Text("${it.name} · ${if(it.demo) "시연 값" else it.source}") }
-        evidence.distinct().forEach { e -> Text("${e.source} · ${if(e.demo) "시연 값 · " else ""}${at(e.observedAt,s.now)}${if(!e.fresh(s.now,600)) " · 오래된 정보" else ""}") }
+        PlannerPill(if(expanded) "데이터 출처 ▴" else "데이터 출처 ▾",{expanded=!expanded},Modifier.fillMaxWidth(),color=GakimColors.Voice)
+        if(expanded) {
+            s.sourceStatuses.forEach { Text(sourceLabel("${it.source} · ${it.at?.let { time -> at(time,s.now) } ?: "미조회"} · ${it.status}"),style=GakimType.Caption) }
+            Text("차량 내비 · ${s.routeReadAt?.let { at(it,s.now) } ?: "미조회"}",style=GakimType.Caption)
+            places.forEach { Text(sourceLabel("${it.name} · ${if(it.demo) "시연 값" else it.source}"),style=GakimType.Caption) }
+            evidence.distinct().forEach { e -> Text(sourceLabel("${e.source} · ${if(e.demo) "시연 값 · " else ""}${at(e.observedAt,s.now)}${if(!e.fresh(s.now,600)) " · 오래된 정보" else ""}"),style=GakimType.Caption) }
+            option?.closingNotices?.forEach { Text(sourceLabel(it.source),style=GakimType.Caption) }
+            option?.chargingNote?.takeIf { it.isNotBlank() }?.let { Text(sourceLabel(it),style=GakimType.Caption) }
+        }
     }
 }
 

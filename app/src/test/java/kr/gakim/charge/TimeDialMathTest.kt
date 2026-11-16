@@ -145,6 +145,7 @@ class TimeDialMathTest {
         val value = clockDialValue(selected, now)
         assertEquals(1440 + 970, value)
         assertEquals(selected, dialClockTime(value, now))
-        assertEquals("오후 4시 10분", dialClockLabel(value, spoken = true))
+        // UX pass keeps accessibility and visible clocks identical.
+        assertEquals("오후 4:10", dialClockLabel(value, spoken = true))
     }
 }

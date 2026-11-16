@@ -5,11 +5,17 @@ import kr.gakim.charge.domain.itinerary.*
 
 /** Explicit fixture catalog; these names/coordinates are demonstration POIs, not verified businesses. */
 open class ItineraryRepository {
+    open val remotePlacesEnabled: Boolean = false
+    open val allowDemoPlaces: Boolean = true
+    open val namedPlaceChoices: List<Place> = emptyList()
+    open suspend fun resolveNamedVisits(plan: Itinerary, position: Place?, isCurrent: () -> Boolean): Map<Long, kr.gakim.charge.data.remote.PlaceResolution> = emptyMap()
     open val needsPosition: Boolean = false
     open val sourceStatuses: List<kr.gakim.charge.data.remote.SourceStatus> = emptyList()
     open val closingCalendar = MartClosingCalendar()
     open suspend fun refreshRemote(plan: Itinerary, position: Place?, now: LocalDateTime) = Unit
     open val searchingPlaces: Boolean = false
+    /** 실데이터일 때 예시 문장에 쓸 가까운 역 이름. */
+    open val exampleDestination: String? = null
     open fun beginRemote(plan: Itinerary) = Unit
     open suspend fun refreshRemote(plan: Itinerary, position: Place?, now: LocalDateTime,
         isCurrent: () -> Boolean, onUpdate: () -> Unit, searchBudgetMillis: Long = 8_000) {

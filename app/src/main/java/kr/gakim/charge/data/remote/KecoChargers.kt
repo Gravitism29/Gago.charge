@@ -117,7 +117,10 @@ class WebKecoChargers(
             // 구가 있는 일반시(성남·수원·고양 등)는 KECO 가 구 코드(41131)가 아니라 시 코드(41130)로만 응답한다(2026-11-16 실호출 확인).
             pages("zcode=${district.take(2)}&zscode=$district").ifEmpty {
                 val city = district.take(4) + "0"
-                if (city == district) emptyList() else pages("zcode=${district.take(2)}&zscode=$city")
+                // 같은 시의 다른 구에서 다시 묻더라도 시 목록(수 MB)은 한 번만 내려받는다.
+                if (city == district) emptyList()
+                else (session.load("city:$city", 600) { pages("zcode=${district.take(2)}&zscode=$city") } as? RemoteResult.Available)?.value
+                    ?: throw SourceFailure("충전소 목록 조회 실패")
             }
         }
         return when (result) {

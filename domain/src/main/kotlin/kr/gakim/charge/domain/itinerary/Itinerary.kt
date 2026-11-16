@@ -4,7 +4,7 @@ import java.time.Duration
 import java.time.LocalDateTime
 import kotlin.math.ceil
 
-enum class Activity(val label: String) { SHOP("장보기"), MEAL("식사"), HOSPITAL("병원 방문"), COLLECT("물건 수령"), PICKUP("픽업"), CUSTOM("직접 입력"), CHARGE("충전") }
+enum class Activity(val label: String) { SHOP("장보기"), MEAL("식사"), HOSPITAL("병원 방문"), COLLECT("물건 수령"), PICKUP("픽업"), CUSTOM("직접 입력"), CHARGE("충전"), ARRIVE("도착") }
 enum class ChargeMode(val label: String) { AUTO("알아서 비교"), NONE("충전 안 함"), TOP_UP("볼일 중 보충"), REQUIRED("필요한 양까지") }
 enum class Availability { AVAILABLE, CHARGING, UNKNOWN, INCOMPATIBLE, UNAVAILABLE }
 
@@ -18,8 +18,8 @@ data class Place(val id: String, val name: String, val latitude: Double, val lon
     val validCoordinates: Boolean get() = latitude.isFinite() && longitude.isFinite() && latitude in -90.0..90.0 && longitude in -180.0..180.0 && (latitude != 0.0 || longitude != 0.0)
 }
 data class Visit(val id: Long, val activity: Activity = Activity.SHOP, val customLabel: String = "",
-                 val place: Place? = null, val stayMinutes: Int = 20, val deadline: LocalDateTime? = null,
-                 val placeholder: Boolean = false) {
+                 val place: Place? = null, val stayMinutes: Int = if (activity == Activity.ARRIVE) 0 else 20, val deadline: LocalDateTime? = null,
+                 val placeholder: Boolean = false, val spokenPlace: String = "") {
     val label: String get() = customLabel.ifBlank { activity.label }
 }
 data class Itinerary(val visits: List<Visit> = listOf(Visit(1, placeholder = true)), val departure: LocalDateTime? = null,

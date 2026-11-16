@@ -2,7 +2,6 @@ package kr.gakim.charge.ui.planner
 
 import java.time.Duration
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import kr.gakim.charge.data.*
 import kr.gakim.charge.domain.TimingStatus
 import kr.gakim.charge.domain.itinerary.*
@@ -14,9 +13,9 @@ import kr.gakim.charge.ui.state.withRo
  * 실제 시각이 16:10 을 지나도 '이미 지났어요' 확인 창이 뜨지 않는다.
  * 나머지 두 예시는 시각을 말하지 않아 언제 눌러도 비교할 수 있다.
  */
-internal fun plannerExamples(now: LocalDateTime): List<String> = listOf(
-    shoppingExampleSentence(now),
-    "병원 들렀다가 물건 수령처에서 물건 받고 갈게",
+internal fun plannerExamples(now: LocalDateTime, remote: Boolean = false, marts: List<Place> = emptyList(), station: String? = null): List<String> = listOf(
+    shoppingExampleSentence(now, remote, marts.filterNot { it.demo }.minByOrNull { it.searchDistanceMeters ?: Double.MAX_VALUE }, station),
+    if (remote) "병원에 30분 들렀다 갈게" else "병원 들렀다가 물건 수령처에서 물건 받고 갈게",
     "충전하면서 30분 밥 먹고 갈래",
 )
 
@@ -28,18 +27,34 @@ internal fun exampleDeadline(now: LocalDateTime): LocalDateTime {
 
 /** 파서가 알아듣는 12시간제 말투. 자정을 넘기면 '내일 오전 …'으로 말한다. */
 internal fun spokenClock(time: LocalDateTime, now: LocalDateTime): String {
-    val meridiem = if (time.hour < 12) "오전" else "오후"
-    val hour = ((time.hour + 11) % 12) + 1
     val prefix = if (time.toLocalDate() != now.toLocalDate()) "내일 " else ""
-    val minute = if (time.minute == 0) "" else " ${time.minute}분"
-    return "$prefix$meridiem ${hour}시$minute"
+    return prefix + itineraryClock(time)
 }
 
-internal fun shoppingExampleSentence(now: LocalDateTime) =
-    "은평점에서 25분 장 보고 ${spokenClock(exampleDeadline(now), now)}까지 학교 가야 해"
+internal fun shoppingExampleSentence(now: LocalDateTime, remote: Boolean = false, mart: Place? = null, station: String? = null): String {
+    val start = if (!remote) "은평점에서 " else mart?.takeUnless { it.demo }?.let { "${it.name}에서 " }.orEmpty()
+    // 주변 마트를 아직 모르면 장소 없는 문장을 보여 준다('회사'처럼 풀 수 없는 장소로 막히지 않게).
+    if (remote && (mart == null || station == null)) return "25분 장 보고 갈게"
+    val destination = if (!remote) "학교" else station!!
+    return "${start}25분 장 보고 ${spokenClock(exampleDeadline(now), now)}까지 $destination 가야 해"
+}
+
+internal fun Visit.placeLabel() = if (place == null && spokenPlace.isNotBlank()) "$spokenPlace · 장소 미정" else place?.name ?: "장소 미정"
+internal fun Visit.timeDetail(now: LocalDateTime): String =
+    (if (activity == Activity.ARRIVE && stayMinutes == 0) "" else "${stayMinutes}분 · ") +
+        (deadline?.let { "${at(it, now)}까지" } ?: "시간 제약 없음")
+
+internal fun placeChoiceLabel(p: Place): String = "${p.name} · ${p.address} · " +
+    (p.searchDistanceMeters?.let { if (it < 1000) "${it.toInt()}m" else "${"%.1f".format(java.util.Locale.KOREAN, it / 1000)}km" } ?: "거리 미확인")
+
+internal val PlannerState.hasDemoData: Boolean get() = demoClock ||
+    options.any { o -> o.evidence.any { it.demo } || o.visits.any { it.place?.demo == true } } ||
+    plan.visits.any { it.place?.demo == true } ||
+    listOfNotNull(energy.socPercent?.evidence, energy.rangeKm?.evidence, energy.kmPerKwh?.evidence).any { it.demo }
 
 /** 이름 뒤에 '로/으로'를 붙인 주 동작 문구. */
-internal fun goLabel(name: String): String = withRo(name) + " 가기 →"
+// 버튼 폭(370dp)에 들어가는 이름만 넣는다. 긴 이름은 카드에 이미 보이므로 "여기로"로 줄인다.
+internal fun goLabel(name: String): String = if (name.length > 9) "여기로 가기 →" else withRo(name) + " 가기 →"
 
 internal const val rangeNotice = "주행 가능 거리를 읽지 못했어요. 충전 판단 없이 시간만 비교할게요."
 
@@ -58,8 +73,7 @@ internal fun ChargeMode.driverLabel() = when (this) {
     ChargeMode.TOP_UP -> "들른 김에 충전"
     ChargeMode.REQUIRED -> "충분히 충전"
 }
-private val timeFormat = DateTimeFormatter.ofPattern("HH:mm")
-internal fun clock(time: LocalDateTime?) = time?.format(timeFormat) ?: "–:––"
+internal fun clock(time: LocalDateTime?) = time?.let(::itineraryClock) ?: "시각 미확인"
 internal fun at(time: LocalDateTime?, now: LocalDateTime): String = time?.let {
     (if (it.toLocalDate() == now.toLocalDate()) "" else if (it.toLocalDate() == now.toLocalDate().plusDays(1)) "내일 " else "${it.monthValue}/${it.dayOfMonth} ") + clock(it)
 } ?: "미확인"
@@ -140,7 +154,8 @@ internal fun Option.scheduleRows(): List<ScheduleRow> = results.map { result ->
     ScheduleRow(
         arrival = clock(result.arrival),
         place = visit.place?.name ?: visit.label,
-        detail = "${visit.label} ${visit.stayMinutes}분",
+        detail = if (visit.activity == Activity.ARRIVE && visit.stayMinutes == 0)
+            visit.deadline?.let { "${clock(it)}까지" } ?: visit.activity.label else "${visit.label} ${visit.stayMinutes}분",
         slackMinutes = visit.deadline?.let { result.slackMinutes },
     )
 }
@@ -177,6 +192,7 @@ internal fun Option.timeline(departure: LocalDateTime): List<Long>? {
 internal fun PlannerState.assistantLine(): String = when {
     park == ParkState.MOVING -> "주차 후에 이어서 도와드릴게요."
     listening -> "듣고 있어요…"
+    searchingPlaces -> "주변 장소를 찾는 중이에요…"
     question != null -> question.message
     pendingTime != null -> "오늘 일정인가요, 내일 일정인가요?"
     screen == 0 && plan.visits.all { it.placeholder } -> "어떤 일을 보고 가실까요?"
@@ -192,10 +208,140 @@ internal fun PlannerState.assistantLine(): String = when {
 
 internal fun PlannerState.candidateGroups(): List<List<Option>> {
     val recommended = recommendedForDisplay()?.id
-    return options.groupBy { it.visits.map { v -> v.place?.id } }.values.sortedWith(
+    return cardOptions.groupBy { it.visits.map { v -> v.place?.id } }.values.sortedWith(
         compareBy<List<Option>> { group -> if (group.any { it.id == recommended }) 0 else 1 }
             .thenBy { group -> group.mapNotNull { it.results.lastOrNull()?.finish }.minOrNull() ?: LocalDateTime.MAX })
 }
 internal val PlannerState.demoMartFallback: Boolean get() =
     !searchingPlaces && options.any { o -> o.visits.any { it.activity == Activity.SHOP && it.place?.demo == true } }
 internal const val martFallbackLine = "주변 마트를 불러오지 못해 시연 장소로 보여드려요"
+
+/** All three computed modes remain available to compare, even after a mode was requested. */
+internal val PlannerState.cardOptions: List<Option> get() = comparisonOptions.ifEmpty { options }
+
+internal fun PlannerState.canStartGuidance(): Boolean = screen==2 && !busy && park!=ParkState.MOVING &&
+    phase !in listOf(ApplyPhase.APPLIED, ApplyPhase.UNCONFIRMED) && !departureExpired &&
+    selected?.selectable==true && pendingTime==null && question==null && pendingImport==null &&
+    (removedPlaces().isEmpty() || acknowledged) && (park==ParkState.PARKED || parkedConfirmed)
+
+/** Presentation only: original evidence strings remain intact for provenance and matching. */
+internal fun sourceLabel(raw: String): String = clockText(raw)
+    .replace("Android RANGE_REMAINING", "차량 주행 가능 거리")
+    .replace("Pleos Vehicle SDK 주행 가능 거리", "차량 주행 가능 거리")
+    .replace("Vehicle SOC", "차량 배터리 잔량")
+    .replace(Regex("명목 출력 기준\\s*(\\d+(?:\\.\\d+)?)\\s*kW")) { powerLabel(it.groupValues[1].toDouble()) }
+    .replace("typed availability", "충전기 상태")
+    .replace("필요한 양까지", "충분히 충전")
+
+internal fun powerLabel(kw: Double): String = "${if (kw % 1.0 == 0.0) kw.toInt().toString() else "%.1f".format(java.util.Locale.KOREAN,kw)}kW " +
+    when { kw<=11 -> "완속"; kw>=40 -> "급속"; else -> "중속" }
+
+internal fun Option.rangeGain(energy: Energy, now: LocalDateTime): Int? {
+    val efficiency=energy.kmPerKwh?.takeIf { it.evidence.fresh(now) && it.value.isFinite() && it.value>0 }?.value ?: return null
+    return energyKwh?.takeIf { it.isFinite() && it>=0 }?.let { kotlin.math.round(it*efficiency).toInt() }
+}
+/** 차량 전비를 모를 때의 어림값. 충전 속도(추정) × 시간 × 5 km/kWh, 10km 단위로 내림. */
+internal fun estimatedRangeGain(chargeMinutes: Int?, site: ChargingSite?): Int? {
+    val kw=site?.effectivePowerKw?.value?.takeIf { it.isFinite() && it>0 } ?: return null
+    val minutes=chargeMinutes?.takeIf { it>0 } ?: return null
+    return (kw*minutes/60.0*5.0).let { if(it>=10) (it/10).toInt()*10 else it.toInt() }.takeIf { it>0 }
+}
+internal fun Option.modeResult(energy: Energy, now: LocalDateTime): String =
+    if(mode==ChargeMode.NONE) "+0분" else listOfNotNull(extraMinutes?.let { "${if(it>=0) "+" else ""}${it}분" } ?: "시간 미확인",
+        rangeGain(energy,now)?.let { "+${it}km" }).joinToString(" · ")
+
+internal fun benefitLine(option: Option, energy: Energy, now: LocalDateTime, site: ChargingSite?): String {
+    if(!option.selectable) return "이 방식으로는 갈 수 없어요 · 다른 방식을 골라 주세요"
+    if(option.mode==ChargeMode.NONE) return if(option.energy.status==EnergyStatus.OPTIONAL) "충전 없이 갈 수 있어요" else "주행 거리와 확인할 내용을 살펴보세요"
+    val soc=energy.socPercent?.takeIf { it.evidence.fresh(now,600) }?.value
+    val gain=when {
+        // 거의 가득 찬 배터리에 'km 이득'을 약속하지 않는다.
+        soc!=null && soc>=90 -> "배터리 ${soc}% · 충전은 거의 필요 없어요"
+        else -> option.rangeGain(energy,now)?.let { "충전 +${it}km" }
+            ?: estimatedRangeGain(option.chargeMinutes,site)?.let { "충전 약 +${it}km(추정)" } ?: "충전량 미확인"
+    }
+    val overlap=if(site?.overlapVerified==true) when(option.visits.firstOrNull { it.id==option.chargeVisitId }?.activity) {
+        Activity.SHOP -> "장 보는 동안"; Activity.MEAL -> "식사하는 동안"; Activity.CHARGE -> null; else -> "볼일 보는 동안"
+    } else null
+    val timing=option.extraMinutes?.let { when { it>0 -> "${it}분 늦게 끝나요";it<0 -> "${-it}분 일찍 끝나요";else -> "끝나는 시각 그대로" } } ?: "끝나는 시각 미확인"
+    return listOfNotNull(gain,overlap,timing).joinToString(" · ")
+}
+/** 60분 이상은 '1시간 54분'처럼 읽기 쉽게. */
+internal fun spanLabel(minutes: Long): String = if(minutes<60) "${minutes}분" else "${minutes/60}시간" + if(minutes%60==0L) "" else " ${minutes%60}분"
+internal fun Option.deadlineLabel(): String {
+    val result=critical
+    val slack=result?.slackMinutes
+    return when { result?.visit?.deadline==null -> "시간 제약 없음";slack==null -> "도착 시각 미확인";
+        slack<0 -> "${spanLabel(-slack)} 늦어요";else -> "약속 ${spanLabel(slack)} 전 도착" }
+}
+internal fun PlannerState.recommendationLabel(): String {
+    val onTime=options.filter { it.selectable && !it.late && it.totalMinutes!=null }.map { it.visits.map { v->v.place?.id } }.distinct()
+    val otherLatePlace=options.any { it.selectable && it.late && it.visits.map { v->v.place?.id } !in onTime }
+    return if(onTime.size==1 && otherLatePlace) "추천 · 유일하게 제시간에 도착해요" else "추천 · 가장 빨리 끝나요"
+}
+internal fun Option.statusChips(site: ChargingSite?, demo: Boolean): List<String> {
+    val status=when(chargingStatus) { Availability.AVAILABLE -> "사용 가능";Availability.CHARGING -> "사용 중";Availability.INCOMPATIBLE -> "차량과 맞지 않음";Availability.UNAVAILABLE -> "사용 불가";else -> "상태 확인 필요" }
+    if(mode==ChargeMode.NONE) return if(demo) listOf("시연 값") else emptyList()
+    val power=site?.effectivePowerKw?.value?.let(::powerLabel)?.let { if(site?.effectivePowerKw?.evidence?.source?.contains("추정")==true) "$it · 추정" else it }
+    val access=when {
+        demo -> "시연 값"
+        site?.note?.contains("이용 제한")==true -> "이용 제한"
+        site?.note?.contains("주차 유료")==true -> "주차 유료"
+        site?.note?.contains("같은 주차장")==true -> "같은 주차장"
+        else -> site?.walkingMinutes?.let { "도보 ${it}분" } ?: "추정"
+    }
+    return listOfNotNull(status,power,access).take(3)
+}
+internal fun Option.detailsConclusion(): String = when {
+    !selectable -> "이 방식으로는 갈 수 없어요"
+    mode!=ChargeMode.NONE && (chargingStatus!=Availability.AVAILABLE || conditions.isNotEmpty()) -> "충전기 상태는 도착해서 확인이 필요해요"
+    energy.status==EnergyStatus.OPTIONAL -> "갈 수 있어요 · 충전은 선택"
+    energy.status==EnergyStatus.UNKNOWN -> "시간은 비교했어요 · 주행 거리는 확인해 주세요"
+    else -> "충전 후 갈 수 있어요 · 여유 거리를 확인해 주세요"
+}
+internal fun Option.reviewWarnings(): List<String> =
+    (conditions+listOfNotNull(energy.note.takeIf { it.isNotBlank() && energy.status!=EnergyStatus.OPTIONAL }))
+        .filter { it.isNotBlank() }.distinct()
+
+internal fun warningFallback(raw: String, option: Option, baseline: Option?): String {
+    val fallback=baseline?.takeIf { it.selectable }?.results?.lastOrNull()?.finish
+    val problem=if(raw==option.chargingNote && raw.isNotBlank()) when {
+        raw.contains("이용 제한") -> "충전소 이용 제한이 있어요"
+        raw.contains("오래된 정보") || raw.contains("상태 시각 미확인") -> "충전기 상태 정보가 오래됐거나 시각이 미확인이에요"
+        else -> "충전 속도·주차·연결 시간은 추정이에요"
+    } else sourceLabel(raw)
+    return when {
+        raw.contains("충전") || raw.contains("대기") || raw.contains("출력") || raw.contains("보행") ->
+            problem + if(fallback!=null) " → 충전기를 못 쓰면 충전 없이 ${clock(fallback)}에 끝나요" else " → 가까운 다른 충전 장소를 골라 주세요"
+        raw.contains("거리") -> sourceLabel(raw) + " → 차량 주행 가능 거리를 확인하고 충전 방식을 골라 주세요"
+        raw.contains("출발") -> sourceLabel(raw) + " → 출발 시각을 다시 정해 주세요"
+        else -> sourceLabel(raw) + " → 자세한 조건을 확인한 뒤 경로를 골라 주세요"
+    }
+}
+
+/** Sequential, non-overlapping elapsed segments. Verified concurrent charging is counted once. */
+internal fun Option.elapsedSegments(departure: LocalDateTime): List<Long>? {
+    var previous=departure
+    var drive=0L
+    var stops=0L
+    for(result in results) {
+        val arrival=result.arrival ?: return null
+        val finish=result.finish ?: return null
+        drive+=Duration.between(previous,arrival).toMinutes().coerceAtLeast(0)
+        stops+=Duration.between(arrival,finish).toMinutes().coerceAtLeast(0)
+        previous=finish
+    }
+    val errands=visits.sumOf { if(it.activity==Activity.CHARGE) 0 else it.stayMinutes }.toLong()
+    return listOf(drive,errands,(stops-errands).coerceAtLeast(0))
+}
+
+/** Display normalisation only: keep the recogniser's original transcript as the parser input. */
+internal fun clockText(text: String): String = text
+    .replace(Regex("(오전|오후)\\s*(\\d{1,2})시(?:\\s*(\\d{1,2})분)?")) { match ->
+        val hour=match.groupValues[2].toInt()
+        val minute=match.groupValues[3].toIntOrNull() ?: 0
+        if(hour !in 1..12 || minute !in 0..59) match.value else itineraryClock(LocalDateTime.of(2000,1,1,hour%12+if(match.groupValues[1]=="오후") 12 else 0,minute))
+    }
+    .replace(Regex("(?<![0-9])(?<!오전 )(?<!오후 )([01]?\\d|2[0-3]):([0-5]\\d)(?![0-9])")) { match ->
+        itineraryClock(LocalDateTime.of(2000,1,1,match.groupValues[1].toInt(),match.groupValues[2].toInt()))
+    }

@@ -14,8 +14,51 @@ class CompositeItineraryRepository(
     private val places: KakaoPlaceSearch, private val directions: KakaoDirections, private val chargers: KecoChargers,
     override val closingCalendar: MartClosingCalendar = MartClosingCalendar(),
 ) : ItineraryRepository() {
+    override val remotePlacesEnabled get() = places.enabled
+    private var namedResults = emptyMap<Pair<String, Activity>, PlaceResolution>()
+    override val namedPlaceChoices get() = namedResults.values.flatMap { it.choices }.distinctBy { it.id }
+    private var placeSourceFailed = false
+    private var namedSourceFailed = false
+    override val allowDemoPlaces get() = !places.enabled || placeSourceFailed || namedSourceFailed
+    override suspend fun resolveNamedVisits(plan: Itinerary, position: Place?, isCurrent: () -> Boolean): Map<Long, PlaceResolution> = coroutineScope {
+        var failed = false
+        val searched = plan.visits.filter { it.place == null && it.spokenPlace.isNotBlank() }.map { visit -> async {
+            val result = when {
+                isGenericPlace(visit.spokenPlace) -> PlaceResolution()
+                else -> {
+                    val remote = if (!places.enabled || position == null) RemoteResult.Unavailable("현재 위치 미확인")
+                        else withTimeoutOrNull(8_000) { places.namedPlaces(visit.spokenPlace, visit.activity, position) }
+                            ?: RemoteResult.Unavailable("응답 시간 초과")
+                    when (remote) {
+                        is RemoteResult.Available -> resolveNamedPlace(visit.spokenPlace,
+                            remote.value.filterNot { closingCalendar.permanentlyClosed(it.name) })
+                        is RemoteResult.Unavailable -> {
+                            failed = true
+                            val demo = catalog.filter { visit.spokenPlace in it.aliases }.map { it.place }
+                            PlaceResolution(place = demo.singleOrNull(), choices = if (demo.size > 1) demo.take(4) else emptyList())
+                        }
+                    }
+                }
+            }
+            visit to result
+        } }.awaitAll()
+        val results = searched.map { (visit, result) ->
+            val fallback = if (failed && isGenericPlace(visit.spokenPlace))
+                catalog.filter { visit.spokenPlace in it.aliases }.map { it.place }.singleOrNull() else null
+            visit to (fallback?.let { PlaceResolution(place = it) } ?: result)
+        }
+        if (isCurrent()) {
+            namedResults = results.associate { (v, r) -> (v.spokenPlace to v.activity) to r }
+            namedSourceFailed = failed
+        }
+        results.associate { it.first.id to it.second }
+    }
     override val needsPosition get() = places.enabled || directions.enabled
     private var remotePlaces: List<Place>? = if (places.enabled) emptyList() else null
+    /** remotePlaces 가 어느 볼일의 후보인지. 장소 미정인 첫 볼일을 따른다. */
+    private var remoteActivity: Activity = Activity.SHOP
+    override var exampleDestination: String? = null
+        private set
     override var searchingPlaces: Boolean = places.enabled
         private set
     private var legs = emptyMap<Pair<String?, String>, Leg>()
@@ -23,14 +66,21 @@ class CompositeItineraryRepository(
     private var statuses = emptyList<SourceStatus>()
     override val sourceStatuses get() = statuses.ifEmpty { listOf(places.status, directions.status, chargers.status) }
     override fun beginRemote(plan: Itinerary) {
-        searchingPlaces = places.enabled && plan.visits.any { it.activity == Activity.SHOP && it.place == null }
+        searchingPlaces = places.enabled && plan.visits.any { it.place == null &&
+            (nearbySearchable(it.activity) || it.spokenPlace.isNotBlank() && !isGenericPlace(it.spokenPlace)) }
         if (searchingPlaces) {
+            namedResults = emptyMap()
+            namedSourceFailed = false
+            placeSourceFailed = false
             remotePlaces = emptyList()
             statuses = sourceStatuses.map { if (it.source == places.status.source) it.copy(status = "조회 중") else it }
         }
     }
     override fun candidates(visit: Visit): List<Place> = (visit.place?.let { listOf(it) }
-        ?: if (visit.activity == Activity.SHOP) remotePlaces ?: super.candidates(visit) else super.candidates(visit))
+        ?: if (places.enabled && visit.spokenPlace.isNotBlank() && !isGenericPlace(visit.spokenPlace)) emptyList()
+        else if (visit.activity == remoteActivity || visit.activity == Activity.SHOP && !places.enabled) remotePlaces ?: super.candidates(visit)
+        else if (places.enabled && nearbySearchable(visit.activity)) emptyList()
+        else if (!allowDemoPlaces) emptyList() else super.candidates(visit))
         .filterNot { closingCalendar.permanentlyClosed(it.name) }
     override fun leg(from: Place?, to: Place, now: LocalDateTime, demoRoutes: Boolean): Leg =
         legs[from?.id to to.id]?.takeIf { it.minutes?.evidence?.fresh(now, 300) == true }
@@ -66,7 +116,12 @@ class CompositeItineraryRepository(
             statuses = nextStatuses.values.toList()
             onUpdate()
         }
-        if (plan.visits.any { it.activity == Activity.SHOP && it.place == null }) {
+        if (places.enabled && position != null && exampleDestination == null)
+            exampleDestination = withTimeoutOrNull(searchBudgetMillis) { places.nearestStationName(position) }
+        val open = plan.visits.firstOrNull { it.place == null && nearbySearchable(it.activity) &&
+                (it.spokenPlace.isBlank() || isGenericPlace(it.spokenPlace)) }
+        if (open != null) {
+            remoteActivity = open.activity
             if (!isCurrent()) return@coroutineScope
             searchingPlaces = places.enabled
             nextPlaces = if (places.enabled) emptyList() else null
@@ -75,12 +130,28 @@ class CompositeItineraryRepository(
             val result = when {
                 !places.enabled -> RemoteResult.Unavailable("키 없음 · 비활성")
                 position == null -> RemoteResult.Unavailable("현재 위치 미확인")
-                else -> withTimeoutOrNull(searchBudgetMillis) { places.nearbyMarts(position) }
+                else -> withTimeoutOrNull(searchBudgetMillis) { places.nearbyFor(open.activity, position) }
                     ?: RemoteResult.Unavailable("응답 시간 초과")
             }
             if (!isCurrent()) return@coroutineScope
+            var found = (result as? RemoteResult.Available)?.value
+            // 식당·병원은 후보가 많다. 충전기가 붙어 있는 곳을 먼저, 그다음 가까운 순으로 3곳만 비교한다.
+            if (found != null && found.size > 3) {
+                if (chargers.enabled) {
+                    // 첫 곳을 먼저 조회해 시군구 충전기 목록(수 MB)을 캐시에 올린다. 동시에 시작하면 같은 목록을 여러 번 내려받는다(에뮬레이터가 재부팅됐다).
+                    (chargers.nearby(found.first()) as? RemoteResult.Available)?.let { nextSites[found.first().id] = it.value }
+                    val gate = Semaphore(2)
+                    found.drop(1).map { place -> async { gate.withPermit {
+                        (chargers.nearby(place) as? RemoteResult.Available)?.let { nextSites[place.id] = it.value }
+                    } } }.awaitAll()
+                    if (!isCurrent()) return@coroutineScope
+                }
+                found = found.withIndex().sortedWith(compareBy({ if (nextSites[it.value.id] != null) 0 else 1 }, { it.index }))
+                    .map { it.value }.take(3)
+            }
             searchingPlaces = false
-            nextPlaces = (result as? RemoteResult.Available)?.value
+            nextPlaces = found
+            placeSourceFailed = result is RemoteResult.Unavailable
             status(places.status, result, "${nextPlaces?.size ?: 0}곳")
         } else {
             if (!isCurrent()) return@coroutineScope
@@ -90,7 +161,7 @@ class CompositeItineraryRepository(
         val unresolved = plan.visits.indexOfFirst { it.place == null }
         val alternatives = if (unresolved < 0) listOf(plan.visits) else {
             val visit = plan.visits[unresolved]
-            val candidates = if (visit.activity == Activity.SHOP) nextPlaces ?: super.candidates(visit) else super.candidates(visit)
+            val candidates = candidates(visit)
             candidates.filterNot { closingCalendar.permanentlyClosed(it.name) }.map { candidate ->
                 plan.visits.mapIndexed { i, v -> if (i == unresolved) v.copy(place = candidate) else v }
             }

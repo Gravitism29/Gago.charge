@@ -9,12 +9,22 @@ interface KakaoPlaceSearch {
     val enabled: Boolean
     val status: SourceStatus
     suspend fun nearbyMarts(position: Place): RemoteResult<List<Place>>
+    /** 예시 문장에 쓸 가장 가까운 지하철역 이름(예: "판교역"). 모르면 null. */
+    suspend fun nearestStationName(position: Place): String? = null
+    /** 장소를 말하지 않은 볼일의 주변 후보. 장보기는 대형마트, 식사·병원은 카카오 카테고리 검색. */
+    suspend fun nearbyFor(activity: Activity, position: Place): RemoteResult<List<Place>> =
+        if (activity == Activity.SHOP) nearbyMarts(position) else RemoteResult.Unavailable("주변 검색 미지원")
+    suspend fun namedPlaces(text: String, activity: Activity, position: Place): RemoteResult<List<Place>> =
+        RemoteResult.Unavailable("장소 검색 미지원")
 }
 interface KakaoDirections {
     val enabled: Boolean
     val status: SourceStatus
     suspend fun route(origin: Place, stops: List<Place>): RemoteResult<List<Leg>>
 }
+/** 주변 후보를 찾을 수 있는 볼일과 카카오 카테고리 그룹 코드(FD6 음식점, HP8 병원). */
+val nearbyCategories = mapOf(Activity.MEAL to "FD6", Activity.HOSPITAL to "HP8")
+fun nearbySearchable(activity: Activity) = activity == Activity.SHOP || activity in nearbyCategories
 internal val timeLabel: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 fun distanceMeters(a: Place, b: Place): Double {
     val lat = Math.toRadians(b.latitude - a.latitude)
@@ -28,11 +38,11 @@ object KakaoParsers {
         listOf("이마트", "코스트코", "홈플러스", "롯데마트", "트레이더스", "하나로마트").any { name.startsWith(it) } &&
         excluded.none { name.contains(it) }
 
-    fun places(raw: String, at: LocalDateTime, decoder: JsonDecoder = AndroidJsonDecoder): List<Place> =
+    fun places(raw: String, at: LocalDateTime, decoder: JsonDecoder = AndroidJsonDecoder, martsOnly: Boolean = true): List<Place> =
         decoder.decode(raw).obj()["documents"].array().mapNotNull { item ->
             val row = item.obj()
             val name = row.text("place_name")
-            if (!isMart(name, row.text("category_group_code"))) return@mapNotNull null
+            if (name.isBlank() || martsOnly && !isMart(name, row.text("category_group_code"))) return@mapNotNull null
             val id = row.text("id").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             val lat = row.number("y") ?: return@mapNotNull null
             val lon = row.number("x") ?: return@mapNotNull null
@@ -60,6 +70,45 @@ class WebKakaoPlaceSearch(
 ) : KakaoPlaceSearch {
     override val enabled get() = session.enabled
     override val status get() = session.status
+    override suspend fun namedPlaces(text: String, activity: Activity, position: Place): RemoteResult<List<Place>> {
+        if (!position.validCoordinates) return RemoteResult.Unavailable("현재 위치 미확인")
+        val branch = activity == Activity.SHOP && isBareMartBranch(text)
+        val mart = activity == Activity.SHOP && (branch || martPrefixes.any { text.replace(" ", "").startsWith(it) })
+        val queries = if (branch) martPrefixes.map { "$it $text" } else listOf(text)
+        val rounded = "${round(position.latitude * 1000) / 1000},${round(position.longitude * 1000) / 1000}"
+        return session.load("named:$activity:$text:$rounded", 600) {
+            suspend fun search(local: Boolean): List<Place> {
+                val results = mutableListOf<Place>()
+                for (query in queries) {
+                    val url = "https://dapi.kakao.com/v2/local/search/keyword.json?query=${encode(query)}&x=${position.longitude}&y=${position.latitude}" +
+                        (if (branch) "&category_group_code=MT1" else "") +
+                        (if (local) "&radius=20000&sort=${if (branch) "distance" else "accuracy"}" else "&sort=accuracy") + "&size=5"
+                    results += KakaoParsers.places(session.request(url, kakao = true), clock(), decoder, martsOnly = mart)
+                }
+                return results.distinctBy { it.id }.filterNot(closed)
+                    .filter { !branch || exactMartBranch(it.name, text) }
+                    .map { it.copy(searchDistanceMeters = distanceMeters(position, it)) }
+            }
+            search(true).ifEmpty { search(false) }
+        }
+    }
+    override suspend fun nearestStationName(position: Place): String? {
+        if (!position.validCoordinates) return null
+        val result = session.load("station:${round(position.latitude * 100) / 100},${round(position.longitude * 100) / 100}", 3600) {
+            val url = "https://dapi.kakao.com/v2/local/search/category.json?category_group_code=SW8&x=${position.longitude}&y=${position.latitude}&radius=10000&sort=distance&size=1"
+            KakaoParsers.places(session.request(url, kakao = true), clock(), decoder, martsOnly = false)
+        }
+        return (result as? RemoteResult.Available)?.value?.firstOrNull()?.name?.trim()?.substringBefore(' ')?.takeIf { it.endsWith("역") }
+    }
+    override suspend fun nearbyFor(activity: Activity, position: Place): RemoteResult<List<Place>> {
+        val category = nearbyCategories[activity] ?: return super.nearbyFor(activity, position)
+        if (!position.validCoordinates) return RemoteResult.Unavailable("현재 위치 미확인")
+        return session.load("near:$category:${position.latitude},${position.longitude}", 600) {
+            val url = "https://dapi.kakao.com/v2/local/search/category.json?category_group_code=$category&x=${position.longitude}&y=${position.latitude}&radius=5000&sort=distance&size=15"
+            KakaoParsers.places(session.request(url, kakao = true), clock(), decoder, martsOnly = false)
+                .distinctBy { it.id }.sortedBy { distanceMeters(position, it) }.take(12)
+        }
+    }
     override suspend fun nearbyMarts(position: Place): RemoteResult<List<Place>> {
         if (!position.validCoordinates) return RemoteResult.Unavailable("현재 위치 미확인")
         return session.load("${position.latitude},${position.longitude}", 600) {

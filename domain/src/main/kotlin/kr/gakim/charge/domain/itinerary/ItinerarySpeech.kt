@@ -7,22 +7,79 @@ data class CatalogEntry(val place: Place, val activities: Set<Activity>, val ali
 data class SpeechQuestion(val message: String, val visitId: Long? = null, val places: List<Place> = emptyList(), val timeRole: Boolean = false, val timeChoices: List<LocalDateTime> = emptyList())
 data class SpeechUpdate(val plan: Itinerary, val applied: List<String>, val question: SpeechQuestion? = null)
 
+sealed interface PlannerVoiceCommand {
+    data class Proceed(val placeName: String? = null) : PlannerVoiceCommand
+    data class Charge(val mode: ChargeMode) : PlannerVoiceCommand
+    data object OtherPlaces : PlannerVoiceCommand
+    data object Confirm : PlannerVoiceCommand
+    data object Back : PlannerVoiceCommand
+}
+
+/** Whole-utterance commands: quoted examples, negations and plan edits never authorise a route. */
+fun plannerVoiceCommand(text: String, screen: Int): PlannerVoiceCommand? {
+    val words = text.trim().trimEnd('.', '!', '?').replace(Regex("\\s+"), "")
+    if (screen == 2) return when (words) {
+        "안내시작", "응", "그래", "가자" -> PlannerVoiceCommand.Confirm
+        "아니", "다른곳", "다른곳으로", "다른곳보여줘" -> PlannerVoiceCommand.Back
+        else -> null
+    }
+    if (screen != 1) return null
+    return when (words) {
+        "이걸로가자", "그걸로가자", "여기로가자" -> PlannerVoiceCommand.Proceed()
+        "충전하고", "충전하고갈게", "충전하고갈래" -> PlannerVoiceCommand.Charge(ChargeMode.TOP_UP)
+        "충전안해", "충전안할게", "충전없이갈게" -> PlannerVoiceCommand.Charge(ChargeMode.NONE)
+        "충분히충전", "충분히충전하고갈게" -> PlannerVoiceCommand.Charge(ChargeMode.REQUIRED)
+        "다른곳", "다른곳보여줘", "다른곳으로" -> PlannerVoiceCommand.OtherPlaces
+        else -> Regex("^(.+?)(?:으로|로)가자$").matchEntire(words)?.groupValues?.get(1)
+            ?.takeUnless { it.contains("충전") || it.startsWith("아니") }
+            ?.let { PlannerVoiceCommand.Proceed(it) }
+    }
+}
+
+data class SpokenPlaceMention(val position: Int, val text: String, val destination: Boolean)
+
+/** Clock masking preserves offsets, so place and activity anchors still share one coordinate system. */
+fun spokenPlaceMentions(text: String): List<SpokenPlaceMention> {
+    val masked = KoreanTimeParser.maskTimeExpressions(text)
+        .replace(Regex("오늘|내일|오전|오후")) { " ".repeat(it.value.length) }
+    val stores = Regex("([가-힣A-Za-z0-9]+(?:\\s+[가-힣A-Za-z0-9]+)?)에서").findAll(masked).map { m ->
+        val words = m.groupValues[1].split(Regex("\\s+"))
+        val name = if (words.size > 1 && words.first() in listOf("이마트", "홈플러스", "롯데마트", "코스트코", "트레이더스"))
+            words.joinToString(" ") else words.last()
+        SpokenPlaceMention(m.range.first + m.groupValues[1].lastIndexOf(name), name, false)
+    }
+    val destinations = Regex("([가-힣A-Za-z0-9]+?)(?:까지|에|으로|로)?\\s*(?:까지\\s*)?(?:(?:데리러|픽업|태우러|받으러)\\s*)?(?:가야\\s*(?:해|돼)|도착해야\\s*(?:해|돼))")
+        .findAll(masked).map {
+            val name = it.groupValues[1]
+            // An added activity ("병원도") keeps its existing activity inference.
+            val addedActivity = name in setOf("병원도", "식당도", "마트도")
+            SpokenPlaceMention(it.range.first, if (addedActivity) name.removeSuffix("도") else name, !addedActivity)
+        }
+    return (stores + destinations).sortedBy { it.position }.toList()
+}
+
 /** A final transcript produces a patch over the existing plan. Missing fields never erase user input. */
 fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEntry>, now: LocalDateTime,
-                       focusedVisitId: Long? = null): SpeechUpdate {
+                       focusedVisitId: Long? = null, remotePlaces: Boolean = false): SpeechUpdate {
     var plan = current
     val applied = mutableListOf<String>()
     var question: SpeechQuestion? = null
     val normalized = text.replace(Regex("\\s+"), " ").trim()
     val correctionOnly = Regex("^(아니|정정|시간은|도착은)").containsMatchIn(normalized)
+    val spoken = spokenPlaceMentions(normalized)
+    val destination = spoken.lastOrNull { it.destination }
+    val pickup = Regex("픽업|데리러|태우러|받으러").containsMatchIn(normalized)
     val activityPatterns = listOf(Activity.SHOP to Regex("장\\s*보|장\\s*봐|마트"), Activity.MEAL to Regex("식사|밥\\s*먹|식당"),
-        Activity.COLLECT to Regex("물건|수령|택배"), Activity.HOSPITAL to Regex("병원"), Activity.PICKUP to Regex("학교|픽업|데리러|태우러"),
+        Activity.COLLECT to Regex("물건|수령|택배"), Activity.HOSPITAL to Regex("병원"), Activity.PICKUP to Regex("픽업|데리러|태우러|받으러"),
         Activity.CHARGE to Regex("충전소만|충전\\s*할\\s*곳|충전소\\s*찾"))
     val activities = activityPatterns
         .mapNotNull { (kind, regex) -> regex.find(normalized)?.takeUnless { match ->
             val tail = normalized.substring(match.range.last+1)
-            Regex("^\\s*(지\\s*(말|않)|는?\\s*말고)").containsMatchIn(tail)
-        }?.let { Triple(it.range.first, kind, it.value) } }.sortedBy { it.first }
+            Regex("^\\s*(지\\s*(말|않)|는?\\s*말고)").containsMatchIn(tail) ||
+                destination?.let { match.range.first in it.position until it.position + it.text.length } == true
+        }?.let { Triple(it.range.first, kind, it.value) } }
+        .plus(if (destination != null && !pickup) listOf(Triple(destination.position, Activity.ARRIVE, destination.text)) else emptyList())
+        .sortedBy { it.first }
 
     // A deadline belongs to one visit. Do not interpret this correction as a new activity or place.
     val noDeadline = Regex("시간\\s*(제약|제한)\\s*없|몇\\s*시든|아무\\s*때나|시간은?\\s*상관\\s*없").containsMatchIn(normalized)
@@ -65,11 +122,13 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
             matches.size > 1 -> return SpeechUpdate(plan, applied, SpeechQuestion("어느 ${kind.label} 방문인지 화면에서 선택해 주세요."))
             plan.visits[focused].placeholder -> {
                 val visits = plan.visits.toMutableList()
-                visits[focused] = visits[focused].copy(activity = kind, customLabel = "", placeholder = false)
+                visits[focused] = visits[focused].copy(activity = kind, customLabel = "", placeholder = false,
+                    stayMinutes = if (kind == Activity.ARRIVE) 0 else visits[focused].stayMinutes)
                 plan = plan.copy(visits = visits)
             }
             plan.visits.size < 3 -> {
-                plan = plan.copy(visits = plan.visits + Visit((plan.visits.maxOfOrNull { it.id } ?: 0) + 1, activity = kind))
+                plan = plan.copy(visits = plan.visits + Visit((plan.visits.maxOfOrNull { it.id } ?: 0) + 1, activity = kind,
+                    stayMinutes = if (kind == Activity.ARRIVE) 0 else 20))
                 focused = plan.visits.lastIndex
             }
             else -> return SpeechUpdate(plan, applied, SpeechQuestion("방문지는 최대 세 곳입니다. 방문 순서를 먼저 정리해 주세요."))
@@ -80,7 +139,7 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
         applied += "할 일 ${kind.label}"
     }
     // Resolve named places against actual saved places and explicitly labelled demo entries.
-    val mentions = catalog.mapNotNull { entry ->
+    val mentions = (if (remotePlaces) emptyList() else catalog).mapNotNull { entry ->
         entry.aliases.filter { it.length >= 2 }.mapNotNull { alias ->
             normalized.indexOf(alias).takeIf { it >= 0 }?.let { Pair(it, alias) }
         }.minByOrNull { it.first }?.let { Triple(it.first, it.second, entry) }
@@ -90,7 +149,9 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
         val entries = samePosition.filter { it.second.length == longest }.map { it.third }.distinctBy { it.place.id }
         val existingPlace = plan.visits.mapNotNull { it.place }.firstOrNull { p -> entries.any { it.place.id == p.id } }
         val entry = if (entries.size == 1) entries.first() else entries.firstOrNull { it.place.id == existingPlace?.id }
-        val kind = (entry ?: entries.first()).activities.firstOrNull() ?: plan.visits[focused].activity
+        val catalogKind = (entry ?: entries.first()).activities.firstOrNull() ?: plan.visits[focused].activity
+        val kind = if (!pickup && (destination?.position == samePosition.first().first || catalogKind == Activity.PICKUP))
+            Activity.ARRIVE else catalogKind
         var target = plan.visits.indexOfFirst { it.place?.id == entry?.place?.id && entry != null }
         if (target < 0) {
             val matching = plan.visits.withIndex().filter { it.value.activity == kind && it.value.place == null }
@@ -103,7 +164,8 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
             target = preferred?.index ?: -1
         }
         if (target < 0 && plan.visits.size < 3) {
-            plan = plan.copy(visits = plan.visits + Visit((plan.visits.maxOfOrNull { it.id } ?: 0) + 1, activity = kind))
+            plan = plan.copy(visits = plan.visits + Visit((plan.visits.maxOfOrNull { it.id } ?: 0) + 1, activity = kind,
+                stayMinutes = if (kind == Activity.ARRIVE) 0 else 20))
             target = plan.visits.lastIndex
         }
         if (target < 0) { question = SpeechQuestion("방문지는 최대 세 곳입니다. 방문 순서를 먼저 정리해 주세요."); continue }
@@ -117,7 +179,7 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
             applied += "${visits[target].label} 장소 ${entry.place.name}"
         }
     }
-    Regex("([가-힣A-Za-z0-9]+점)에서").find(normalized)?.groupValues?.get(1)?.let { requested ->
+    if (!remotePlaces) Regex("([가-힣A-Za-z0-9]+점)에서").find(normalized)?.groupValues?.get(1)?.let { requested ->
         if(catalog.none { entry -> entry.aliases.any { it == requested } }) {
             question=SpeechQuestion("${requested}의 좌표를 찾지 못했어요. 해당 장소를 화면에서 선택해 주세요.",plan.visits[focused].id)
         }
@@ -126,11 +188,32 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
         for ((_, kind, _) in activities.drop(1)) {
             if (plan.visits.none { it.activity == kind }) {
                 if (plan.visits.size < 3) {
-                    plan = plan.copy(visits = plan.visits + Visit(plan.visits.maxOf { it.id } + 1, kind))
+                    plan = plan.copy(visits = plan.visits + Visit(plan.visits.maxOf { it.id } + 1, kind,
+                        stayMinutes = if (kind == Activity.ARRIVE) 0 else 20))
                     applied += "${kind.label} 추가"
                 } else if (question == null) {
                     question = SpeechQuestion("방문지는 최대 세 곳입니다. 방문 순서를 먼저 정리해 주세요.")
                 }
+            }
+        }
+    }
+    if (remotePlaces && !correctionOnly) {
+        val assigned = mutableSetOf<Long>()
+        for (mention in spoken) {
+            val kind = if (mention.destination) { if (pickup) Activity.PICKUP else Activity.ARRIVE }
+                else activities.lastOrNull { it.first <= mention.position }?.second
+                    ?: activities.firstOrNull()?.second ?: plan.visits[focused].activity
+            var target = plan.visits.indexOfFirst { it.activity == kind && it.id !in assigned }
+            if (target < 0 && plan.visits.size < 3) {
+                plan = plan.copy(visits = plan.visits + Visit(plan.visits.maxOf { it.id } + 1, kind))
+                target = plan.visits.lastIndex
+            }
+            if (target >= 0) {
+                assigned += plan.visits[target].id
+                val saved = catalog.filter { entry -> entry.aliases.any { it.replace(" ", "") == mention.text.replace(" ", "") } }
+                    .map { it.place }.distinctBy { it.id }.singleOrNull()
+                plan = plan.copy(visits = plan.visits.mapIndexed { i, v -> if (i == target)
+                    v.copy(place = saved, spokenPlace = mention.text, placeholder = false) else v })
             }
         }
     }
@@ -168,6 +251,12 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
                 plan.visits.forEachIndexed { index, visit ->
                     if (visit.place?.id == entry.place.id) anchors += (position until position + alias.length) to index
                 }
+            }
+        }
+        for (mention in spoken) {
+            plan.visits.forEachIndexed { index, visit ->
+                if (visit.spokenPlace == mention.text)
+                    anchors += (mention.position until mention.position + mention.text.length) to index
             }
         }
         fun gap(range: IntRange): Int = when {
@@ -221,7 +310,10 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
     if (timeMention != null && !departureRole && correctionOnly && explicitTimeTargets.size != 1 && deadlineTargets.size > 1) {
         return SpeechUpdate(plan, applied, SpeechQuestion("어느 방문의 도착 마감인지 화면에서 선택해 주세요."))
     }
-    val timeTarget = explicitTimeTargets.singleOrNull()?.index
+    // "…○○까지 △△ 가야 해": 마감은 도착지(△△)의 것이다. 문장에 이름이 나온 다른 방문(저장된 장소로 묶인 마트 등)에 붙이지 않는다.
+    val destinationTarget = destination?.takeUnless { correctionOnly }
+        ?.let { d -> plan.visits.indexOfLast { it.spokenPlace == d.text }.takeIf { it >= 0 } }
+    val timeTarget = destinationTarget ?: explicitTimeTargets.singleOrNull()?.index
         ?: deadlineTargets.singleOrNull()?.index?.takeIf { correctionOnly }
         ?: plan.visits.lastIndex
     if (timeMention != null) {
@@ -256,12 +348,12 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
                     else -> now.toLocalDate()
                 }
                 val at = date.atStartOfDay().plusMinutes(clock.toLong())
-                if (departureRole) { plan = plan.copy(departure = at); applied += "출발 ${at.toLocalTime()}" }
+                if (departureRole) { plan = plan.copy(departure = at); applied += "출발 ${itineraryClock(at)}" }
                 else {
                     val visits = plan.visits.toMutableList()
                     visits[timeTarget] = visits[timeTarget].copy(deadline = at, placeholder = false)
                     plan = plan.copy(visits = visits)
-                    applied += "${visits[timeTarget].place?.name ?: visits[timeTarget].label} 도착 마감 ${at.toLocalTime()}"
+                    applied += "${visits[timeTarget].place?.name ?: visits[timeTarget].label} 도착 마감 ${itineraryClock(at)}"
                 }
             }
         }

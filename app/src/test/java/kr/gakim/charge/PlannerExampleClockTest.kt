@@ -40,11 +40,12 @@ class PlannerExampleClockTest {
         }
         assertEquals(LocalDateTime.of(2026,11,15,15,30),exampleDeadline(clocks()[0]))
     }
+    // UX pass intentionally uses the same 오전/오후 h:mm clock on every surface.
     @Test fun sentenceSpeaksTwelveHourClockAndSaysTomorrowAfterMidnight() {
-        assertEquals("은평점에서 25분 장 보고 오후 3시 30분까지 학교 가야 해",plannerExamples(clocks()[0])[0])
-        assertTrue(plannerExamples(clocks()[2])[0].contains("내일 오전 2시 10분까지"))
-        assertTrue(plannerExamples(clocks()[1])[0].contains("내일 오전 12시 20분까지"))
-        assertTrue(plannerExamples(clocks()[3])[0].contains("오전 2시 50분까지"))
+        assertEquals("은평점에서 25분 장 보고 오후 3:30까지 학교 가야 해",plannerExamples(clocks()[0])[0])
+        assertTrue(plannerExamples(clocks()[2])[0].contains("내일 오전 2:10까지"))
+        assertTrue(plannerExamples(clocks()[1])[0].contains("내일 오전 12:20까지"))
+        assertTrue(plannerExamples(clocks()[3])[0].contains("오전 2:50까지"))
     }
     @Test fun everyGeneratedSentenceParsesToTwoVisitsWithFutureDeadline()=runTest {
         for(now in clocks()) {

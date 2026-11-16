@@ -1,0 +1,4 @@
+{
+  "errorType": "NotAuthorizedError",
+  "message": "App(test) disabled OPEN_MAP_AND_LOCAL service."
+}

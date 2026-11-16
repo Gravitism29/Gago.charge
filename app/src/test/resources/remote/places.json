@@ -1,0 +1,147 @@
+{
+  "documents": [
+    {
+      "id": "0",
+      "place_name": "이마트 은평점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.918",
+      "y": "37.635",
+      "distance": "0"
+    },
+    {
+      "id": "1",
+      "place_name": "코스트코코리아 일산점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.91900000000001",
+      "y": "37.635999999999996",
+      "distance": "100"
+    },
+    {
+      "id": "2",
+      "place_name": "트레이더스 홀세일 클럽 고양점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.92",
+      "y": "37.637",
+      "distance": "200"
+    },
+    {
+      "id": "3",
+      "place_name": "홈플러스 킨텍스점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.921",
+      "y": "37.638",
+      "distance": "300"
+    },
+    {
+      "id": "4",
+      "place_name": "BHC치킨 은평이마트점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.92200000000001",
+      "y": "37.638999999999996",
+      "distance": "400"
+    },
+    {
+      "id": "5",
+      "place_name": "ABC마트 은평이마트점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.923",
+      "y": "37.64",
+      "distance": "500"
+    },
+    {
+      "id": "6",
+      "place_name": "이마트24 은평점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.924",
+      "y": "37.641",
+      "distance": "600"
+    },
+    {
+      "id": "7",
+      "place_name": "홈플러스 익스프레스 은평점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.92500000000001",
+      "y": "37.641999999999996",
+      "distance": "700"
+    },
+    {
+      "id": "8",
+      "place_name": "이마트 에브리데이 은평점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.926",
+      "y": "37.643",
+      "distance": "800"
+    },
+    {
+      "id": "9",
+      "place_name": "이마트 노브랜드 은평점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.927",
+      "y": "37.644",
+      "distance": "900"
+    },
+    {
+      "id": "10",
+      "place_name": "이마트 슈퍼",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.92800000000001",
+      "y": "37.644999999999996",
+      "distance": "1000"
+    },
+    {
+      "id": "11",
+      "place_name": "이마트 마켓",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.929",
+      "y": "37.646",
+      "distance": "1100"
+    },
+    {
+      "id": "12",
+      "place_name": "이마트 편의점",
+      "category_group_code": "MT1",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.93",
+      "y": "37.647",
+      "distance": "1200"
+    },
+    {
+      "id": "13",
+      "place_name": "이마트 식당",
+      "category_group_code": "FD6",
+      "road_address_name": "서울 은평구 통일로",
+      "address_name": "서울 은평구",
+      "x": "126.93100000000001",
+      "y": "37.647999999999996",
+      "distance": "1300"
+    }
+  ],
+  "meta": {
+    "total_count": 14
+  }
+}

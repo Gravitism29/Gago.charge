@@ -1,0 +1,18 @@
+{
+  "routes": [
+    {
+      "result_code": 0,
+      "result_msg": "??? ??",
+      "sections": [
+        {
+          "distance": 1234,
+          "duration": 61
+        },
+        {
+          "distance": 3000,
+          "duration": 120
+        }
+      ]
+    }
+  ]
+}

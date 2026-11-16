@@ -1,0 +1,9 @@
+# Copy these entries into gitignored local.properties. Never commit credentials.
+# https://developers.kakao.com → 내 애플리케이션 → REST API 키
+# Enable 카카오맵(로컬) and 카카오모빌리티 길찾기 사용 설정.
+# Environment alternative: KAKAO_REST_API_KEY
+kakao.restApiKey=
+# https://data.go.kr → 한국환경공단_전기자동차 충전소 정보 → 활용신청 → 일반 인증키
+# Raw and URL-encoded service keys are accepted.
+# Environment alternative: DATAGOKR_SERVICE_KEY
+datagokr.serviceKey=

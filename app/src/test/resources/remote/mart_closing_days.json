@@ -1,0 +1,60 @@
+{
+  "collectedAt": "2026-11-16",
+  "note": "각 체인 공식 점포 안내에서 수집. 변경될 수 있으니 방문 전 확인.",
+  "stores": [
+    {
+      "brand": "롯데마트",
+      "branch": "원주점",
+      "address": "강원도 원주시 봉화로 1",
+      "sido": "강원",
+      "sigungu": "원주시",
+      "rule": null,
+      "closedDates": [
+        "2026-11-11",
+        "2026-11-25"
+      ],
+      "sourceUrl": "https://company.lottemart.com/shop/shop_search.asp?list_num=1000",
+      "sourceQuote": "11/11(수), 11/25(수)",
+      "fetchedAt": "2026-11-16",
+      "pattern": [
+        {
+          "weekday": "WED",
+          "weeks": [
+            2,
+            4
+          ]
+        }
+      ],
+      "coveredMonths": [
+        "2026-11"
+      ]
+    },
+    {
+      "brand": "롯데마트",
+      "branch": "석사점",
+      "address": "강원도 춘천시 세실로 108 (석사동)",
+      "sido": "강원",
+      "sigungu": "춘천시",
+      "rule": null,
+      "closedDates": [
+        "2026-11-08",
+        "2026-11-22"
+      ],
+      "sourceUrl": "https://company.lottemart.com/shop/shop_search.asp?list_num=1000",
+      "sourceQuote": "11/08(일), 11/22(일)",
+      "fetchedAt": "2026-11-16",
+      "pattern": [
+        {
+          "weekday": "SUN",
+          "weeks": [
+            2,
+            4
+          ]
+        }
+      ],
+      "coveredMonths": [
+        "2026-11"
+      ]
+    }
+  ]
+}

@@ -20,7 +20,13 @@ sealed interface BatteryReading {
 
 enum class ParkState { PARKED, MOVING, UNKNOWN }
 
+sealed interface VehicleEnergyUpdate {
+    data class Soc(val reading: BatteryReading) : VehicleEnergyUpdate
+    data class Range(val reading: Measured<Double>?) : VehicleEnergyUpdate
+}
+
 interface VehicleGateway {
+    val energyUpdates: Flow<VehicleEnergyUpdate> get() = kotlinx.coroutines.flow.emptyFlow()
     suspend fun readBatterySoc(): BatteryReading
     suspend fun readRangeKm(): Measured<Double>? = null
     suspend fun readEfficiencyKmPerKwh(): Measured<Double>? = null
@@ -71,6 +77,7 @@ sealed interface NaviRequest {
 }
 
 interface NaviGateway {
+    suspend fun currentPosition(): kr.gakim.charge.domain.itinerary.Place? = null
     /** 목적지와 경유지를 읽는다. 요청 뒤 반영 확인에도 같은 함수를 쓴다. */
     suspend fun readRoute(): NaviRead
 

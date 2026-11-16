@@ -75,8 +75,13 @@ class PleosNaviGateway(context: Context) : NaviGateway {
     private var recentWaiter: CompletableDeferred<List<RecentDestinationInfo>>? = null
     private var tripWaiter: CompletableDeferred<TripInfo>? = null
     private var tripTimedOut = false
+    private var locationWaiter: CompletableDeferred<ai.pleos.playground.navi.data.CurrentLocationInfo>? = null
+    private var locationTimedOut = false
 
     private val listener = object : NaviHelperEventListener {
+        override fun onCurrentLocationInfo(currentLocationInfo: ai.pleos.playground.navi.data.CurrentLocationInfo) {
+            locationWaiter?.complete(currentLocationInfo)
+        }
         override fun onBookmarkInfo(bookmarkInfoList: List<BookmarkInfo>) { bookmarkWaiter?.complete(bookmarkInfoList) }
         override fun onRecentDestinationInfo(recentDestinationInfoList: List<RecentDestinationInfo>) { recentWaiter?.complete(recentDestinationInfoList) }
         override fun onTripInfo(tripInfo: TripInfo) { tripWaiter?.complete(tripInfo) }
@@ -228,6 +233,21 @@ class PleosNaviGateway(context: Context) : NaviGateway {
         catch(e:Exception) { if(e is CancellationException) throw e;NaviRequest.Failed(e.message ?: "검색 화면 요청 실패") }
     }
 
+    override suspend fun currentPosition(): kr.gakim.charge.domain.itinerary.Place? = mutex.withLock {
+        val h = helper ?: return@withLock null
+        if (locationTimedOut || !ensureConnected(h)) return@withLock null
+        try {
+            val reply = CompletableDeferred<ai.pleos.playground.navi.data.CurrentLocationInfo>().also { locationWaiter = it }
+            h.getCurrentLocationInfo()
+            val info = withTimeoutOrNull(READ_TIMEOUT_MS) { reply.await() }
+            if (info == null) { locationTimedOut = true; return@withLock null }
+            kr.gakim.charge.domain.itinerary.Place("current", "현재 위치", info.latitude, info.longitude, info.address, source = "NaviHelper 현재 위치")
+                .takeIf { it.validCoordinates }
+        } catch (e: CancellationException) { locationTimedOut = true; throw e }
+        catch (e: Exception) { null }
+        finally { locationWaiter = null }
+    }
+
     override suspend fun previewTrip(place: NaviPlace): TripPreview? = mutex.withLock {
         val h = helper ?: return@withLock null
         // No callback request ID: after timeout do not bind a late response to another target.
@@ -249,6 +269,7 @@ class PleosNaviGateway(context: Context) : NaviGateway {
     }
 
     override fun release() {
+        locationWaiter?.cancel()
         bookmarkWaiter?.cancel(); recentWaiter?.cancel(); tripWaiter?.cancel()
         destinationWaiter?.cancel()
         waypointWaiter?.cancel()

@@ -22,5 +22,5 @@ secrets.properties
 
 # Published demo APK
 apk/*.apk
-!apk/gakim-charge-0.3.1-debug.apk
+!apk/*_release.apk
 .kotlin/

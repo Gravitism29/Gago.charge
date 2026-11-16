@@ -14,6 +14,14 @@ val keystoreProps = Properties().apply {
 }
 
 val useFakesByDefault = (findProperty("gakim.useFakes") as String?)?.toBoolean() ?: true
+val localSecrets = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use { load(it) }
+}
+fun apiKey(property: String, environment: String): String {
+    val value = localSecrets.getProperty(property)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(environment).orEmpty()
+    return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "").replace("\r", "") + "\""
+}
 
 android {
     useLibrary("android.car")
@@ -28,8 +36,10 @@ android {
         applicationId = "kr.gakim.charge"
         minSdk = 28 // 공모전 요건
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.3.1"
+        versionCode = 5
+        versionName = "0.4.0"
+        buildConfigField("String", "KAKAO_REST_API_KEY", apiKey("kakao.restApiKey", "KAKAO_REST_API_KEY"))
+        buildConfigField("String", "DATA_GO_KR_SERVICE_KEY", apiKey("datagokr.serviceKey", "DATAGOKR_SERVICE_KEY"))
     }
 
     signingConfigs {

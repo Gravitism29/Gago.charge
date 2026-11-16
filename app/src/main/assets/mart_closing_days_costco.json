@@ -1,0 +1,515 @@
+{
+ "collectedAt": "2026-11-16",
+ "coveredMonths": [
+  "2026-11",
+  "2026-12"
+ ],
+ "note": "코스트코 공식 휴무일 안내 이미지(사용자 제공)에서 옮김. pattern은 11·12월 날짜에서 확인한 규칙이며 이후 달은 추정에 사용.",
+ "stores": [
+  {
+   "brand": "코스트코",
+   "branch": "양평점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "고척점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "양재점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "광명점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "상봉점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "의정부점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "공세점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "하남점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "평택점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "송도점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "청라점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "천안점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "세종점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "대전점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "김해점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "부산점",
+   "address": null,
+   "rule": "둘째·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "SUN",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-08",
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "대구점",
+   "address": null,
+   "rule": "둘째·넷째 월요일",
+   "pattern": [
+    {
+     "weekday": "MON",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-09",
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "대구혁신점",
+   "address": null,
+   "rule": "둘째·넷째 월요일",
+   "pattern": [
+    {
+     "weekday": "MON",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-09",
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "일산점",
+   "address": null,
+   "rule": "둘째·넷째 수요일",
+   "pattern": [
+    {
+     "weekday": "WED",
+     "weeks": [
+      2,
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-11",
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  },
+  {
+   "brand": "코스트코",
+   "branch": "울산점",
+   "address": null,
+   "rule": "둘째 수요일·넷째 일요일",
+   "pattern": [
+    {
+     "weekday": "WED",
+     "weeks": [
+      2
+     ]
+    },
+    {
+     "weekday": "SUN",
+     "weeks": [
+      4
+     ]
+    }
+   ],
+   "closedDates": [
+    "2026-11-11",
+    "2026-11-22",
+    "2026-12-09",
+    "2026-12-27"
+   ],
+   "sourceUrl": null,
+   "sourceQuote": "코스트코 11월·12월 점포 휴무일 안내(사용자 제공 이미지)",
+   "source": "코스트코 점포 휴무일 안내",
+   "fetchedAt": "2026-11-16"
+  }
+ ]
+}

@@ -4,7 +4,18 @@ import java.time.LocalDateTime
 import kr.gakim.charge.domain.itinerary.*
 
 /** Explicit fixture catalog; these names/coordinates are demonstration POIs, not verified businesses. */
-class ItineraryRepository {
+open class ItineraryRepository {
+    open val needsPosition: Boolean = false
+    open val sourceStatuses: List<kr.gakim.charge.data.remote.SourceStatus> = emptyList()
+    open val closingCalendar = MartClosingCalendar()
+    open suspend fun refreshRemote(plan: Itinerary, position: Place?, now: LocalDateTime) = Unit
+    open val searchingPlaces: Boolean = false
+    open fun beginRemote(plan: Itinerary) = Unit
+    open suspend fun refreshRemote(plan: Itinerary, position: Place?, now: LocalDateTime,
+        isCurrent: () -> Boolean, onUpdate: () -> Unit, searchBudgetMillis: Long = 8_000) {
+        refreshRemote(plan, position, now)
+        if (isCurrent()) onUpdate()
+    }
     private fun place(id: String, name: String, lat: Double, lon: Double) = Place(id, name, lat, lon, "시연 좌표 · 실제 점포 아님", demo = true, source = "시연 장소 목록")
     val catalog = listOf(
         CatalogEntry(place("mart-e", "은평점", 37.635, 126.918), setOf(Activity.SHOP), listOf("은평점", "은평마트")),
@@ -17,13 +28,13 @@ class ItineraryRepository {
         CatalogEntry(place("hospital", "병원", 37.629, 126.929), setOf(Activity.HOSPITAL), listOf("병원")),
         CatalogEntry(place("school", "학교", 37.630, 126.931), setOf(Activity.PICKUP), listOf("학교")),
     )
-    fun candidates(visit: Visit): List<Place> = visit.place?.let { listOf(it) }
+    open fun candidates(visit: Visit): List<Place> = visit.place?.let { listOf(it) }
         ?: if(visit.activity==Activity.CHARGE) catalog.map { it.place }.filter {
             val site=charging(it,LocalDateTime.now())
             site!=null && site.availability !in listOf(Availability.INCOMPATIBLE,Availability.UNAVAILABLE)
         } else catalog.filter { visit.activity in it.activities }.map { it.place }
 
-    fun leg(from: Place?, to: Place, now: LocalDateTime, demoRoutes: Boolean): Leg {
+    open fun leg(from: Place?, to: Place, now: LocalDateTime, demoRoutes: Boolean): Leg {
         if (!demoRoutes || !to.demo || from?.demo == false) return Leg(null, null)
         val toMinutes = mapOf("mart-e" to 12, "mart-s" to 16, "mart-y" to 9, "meal-a" to 10, "meal-b" to 14, "meal-c" to 8, "collect" to 12, "hospital" to 24, "school" to 28)
         val minutes = when {
@@ -43,7 +54,7 @@ class ItineraryRepository {
         val evidence = Evidence("시연 구간 표 · 실제 교통 미반영", now, true)
         return Leg(Measured(minutes, evidence), Measured(distances, evidence))
     }
-    fun charging(place: Place, now: LocalDateTime): ChargingSite? {
+    open fun charging(place: Place, now: LocalDateTime): ChargingSite? {
         if (!place.demo || place.id in listOf("collect", "hospital", "school")) return null
         val evidence = Evidence("시연 충전기·실효 출력", now, true)
         return ChargingSite(when(place.id) { "meal-c" -> Availability.INCOMPATIBLE; "mart-y" -> Availability.UNKNOWN; else -> Availability.AVAILABLE },

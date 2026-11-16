@@ -1,0 +1,17 @@
+{
+  "resultCode": "00",
+  "items": {
+    "item": [
+      {
+        "statId": "S1",
+        "chgerId": "01",
+        "stat": "3",
+        "statUpdDt": "20261116120500",
+        "lastTsdt": "",
+        "lastTedt": "",
+        "nowTsdt": "20261116120500"
+      }
+    ]
+  },
+  "totalCount": "1"
+}

@@ -1,0 +1,27 @@
+{
+  "resultCode": "00",
+  "items": {
+    "item": [
+      {
+        "statNm": "이마트 은평점 충전소",
+        "statId": "S1",
+        "chgerId": "01",
+        "chgerType": "06",
+        "addr": "서울 은평구 통일로",
+        "lat": "37.635",
+        "lng": "126.918",
+        "output": "100",
+        "busiNm": "환경공단",
+        "useTime": "24시간",
+        "parkingFree": "Y",
+        "limitYn": "N",
+        "delYn": "N",
+        "stat": "2",
+        "statUpdDt": "20261116120000"
+      }
+    ]
+  },
+  "totalCount": "1",
+  "pageNo": "1",
+  "numOfRows": "9999"
+}

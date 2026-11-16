@@ -18,10 +18,12 @@ import org.json.JSONObject
 
 class PlannerViewModel(application: Application) : AndroidViewModel(application) {
     private var gateways = GatewayFactory.create(application, application.resources.getBoolean(R.bool.use_fakes_default))
-    val controller = ItineraryController(gateways, journal = PreferencesRouteJournal(application))
+    val controller = ItineraryController(gateways, repository = kr.gakim.charge.data.remote.remoteRepository(application), journal = PreferencesRouteJournal(application))
     val state = controller.state
+    private var energyJob: Job? = null
     private var readJob: Job? = null
     private var calcJob: Job? = null
+    private var previewPlan: Pair<List<Visit>, java.time.LocalDateTime?>? = null
     private var applyJob: Job? = null
     private var speechJob: Job? = null
     private var speechGeneration = 0L
@@ -29,28 +31,39 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
     private var foreground=true
     private var parkJob:Job?=null
     init {
+        observeEnergy()
         refresh()
         viewModelScope.launch { while(true) { delay(5_000); if(foreground) {
             controller.tick();controller.refreshPark()
             if(state.value.park==ParkState.MOVING) stopListening()
         } } }
     }
+    private fun observeEnergy() { energyJob?.cancel(); energyJob = viewModelScope.launch { controller.observeEnergy() } }
+    private fun preview() {
+        val signature = state.value.plan.visits to state.value.plan.departure
+        if (calcJob?.isActive == true && previewPlan == signature) return
+        calcJob?.cancel()
+        previewPlan = signature
+        calcJob = viewModelScope.launch { controller.previewRoutes() }
+    }
     fun edit(action: () -> Unit) {
         if (state.value.busy) return
-        stopListening(); calcJob?.cancel()
+        stopListening()
+        val wasDemo = state.value.demoEnergy
         action()
-        calcJob = viewModelScope.launch { controller.previewRoutes() }
+        if (wasDemo && !state.value.demoEnergy) { refresh(); return }
+        preview()
     }
     fun refresh() {
         if (state.value.busy) return
-        stopListening(); readJob?.cancel(); calcJob?.cancel()
-        readJob = viewModelScope.launch { controller.refresh(); controller.previewRoutes() }
+        stopListening(); readJob?.cancel()
+        readJob = viewModelScope.launch { controller.refresh(); preview() }
     }
     fun useFakes(enabled: Boolean) {
         if (state.value.busy || enabled == gateways.usingFakes) return
-        stopListening(); readJob?.cancel(); calcJob?.cancel(); gateways.release()
+        stopListening(); readJob?.cancel(); calcJob?.cancel(); energyJob?.cancel(); gateways.release()
         gateways = GatewayFactory.create(getApplication(), enabled)
-        controller.replaceGateways(gateways); refresh()
+        controller.replaceGateways(gateways); observeEnergy(); refresh()
     }
     fun toggleListening() {
         if (state.value.busy || state.value.park == ParkState.MOVING) return
@@ -66,9 +79,8 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
                     if (token == speechGeneration) {
                         if (event is SpeechEvent.Final) {
                             finalReceived=true
-                            calcJob?.cancel()
                             controller.onSpeech(event, if(source.usingFakes) "모의 SpeechGateway" else "공식 SpeechToText · 확정")
-                            calcJob = viewModelScope.launch { controller.previewRoutes() }
+                            preview()
                             if(state.value.tts) source.speechOutput.speak(state.value.applied.joinToString(". "))
                             speechGeneration++
                         } else controller.onSpeech(event, if(source.usingFakes) "모의 SpeechGateway" else "공식 SpeechToText")
@@ -117,12 +129,13 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
         if(!BuildConfig.DEBUG) return
         when(name) {
             "demo" -> edit { controller.setDemoClock(true); controller.setDemoRoutes(true); controller.setDemoEnergy(true) }
+            "demo_off" -> { edit { controller.setDemoClock(false); controller.setDemoRoutes(false); controller.setDemoEnergy(false) }; refresh() }
             "missing" -> { controller.simulateMissing = true; controller.setDemoEnergy(false); refresh() }
             "recover" -> { controller.simulateMissing = false; controller.simulateApplyFailure = false; refresh() }
             "fail" -> { controller.simulateApplyFailure = true }
         }
     }
-    override fun onCleared() { stopListening(); readJob?.cancel(); calcJob?.cancel(); applyJob?.cancel();parkJob?.cancel(); gateways.release() }
+    override fun onCleared() { energyJob?.cancel(); stopListening(); readJob?.cancel(); calcJob?.cancel(); applyJob?.cancel();parkJob?.cancel(); gateways.release() }
 }
 
 private class PreferencesRouteJournal(app: Application) : RouteJournal {

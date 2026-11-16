@@ -5,6 +5,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
@@ -24,7 +26,69 @@ import kotlin.coroutines.resume
 class PleosVehicleGateway(context: Context) : VehicleGateway {
     private val appContext = context.applicationContext
 
-    override suspend fun readRangeKm() = AndroidRangeReader.read(appContext)
+    private suspend fun readPleosRange(): kr.gakim.charge.domain.itinerary.Measured<Double>? = withTimeoutOrNull(TIMEOUT_MS) {
+        suspendCancellableCoroutine { cont ->
+            val v = vehicle
+            if (v == null) { cont.resume(null); return@suspendCancellableCoroutine }
+            try {
+                v.getOdometer().getRangeRemainingDistance(
+                    onComplete = { if (cont.isActive) cont.resume(rangeFromMeters(it?.toDouble(), "Pleos Vehicle SDK 주행 가능 거리")) },
+                    onFailed = { if (cont.isActive) cont.resume(null) })
+            } catch (e: Exception) { if (cont.isActive) cont.resume(null) }
+        }
+    }
+    override suspend fun readRangeKm() = AndroidRangeReader.read(appContext) ?: readPleosRange()
+
+    private var stopUpdates: (() -> Unit)? = null
+    override val energyUpdates: kotlinx.coroutines.flow.Flow<kr.gakim.charge.data.VehicleEnergyUpdate> = kotlinx.coroutines.flow.callbackFlow {
+        val v = vehicle
+        var androidRange: kr.gakim.charge.domain.itinerary.Measured<Double>? = null
+        var pleosRange: kr.gakim.charge.domain.itinerary.Measured<Double>? = null
+        val lock = Any()
+        var androidVersion = 0
+        var pleosVersion = 0
+        fun publish() { trySend(kr.gakim.charge.data.VehicleEnergyUpdate.Range(selectRange(androidRange, pleosRange))) }
+        val socListener = object : ai.pleos.playground.vehicle.listener.EvBatteryStateOfChargeListener {
+            override fun onEvBatteryStateOfChargeUpdated(value: Int?) {
+                trySend(kr.gakim.charge.data.VehicleEnergyUpdate.Soc(
+                    value?.takeIf { it in 0..100 }?.let { BatteryReading.Known(it) } ?: BatteryReading.Unknown("SOC unavailable")))
+            }
+            override fun onFailed(e: Exception) { onEvBatteryStateOfChargeUpdated(null) }
+        }
+        val rangeListener = object : ai.pleos.playground.vehicle.listener.RangeRemainingListener {
+            override fun onRangeRemainingChanged(rangeRemaining: Float?) { synchronized(lock) {
+                pleosVersion++
+                pleosRange = rangeFromMeters(rangeRemaining?.toDouble(), "Pleos Vehicle SDK 주행 가능 거리"); publish()
+            } }
+            override fun onFailed(e: Exception) { onRangeRemainingChanged(null) }
+        }
+        try { v?.getEvBattery()?.registerEvBatteryStateOfCharge(socListener) } catch (e: Exception) { socListener.onFailed(e) }
+        try { v?.getOdometer()?.registerRangeRemainingListener(rangeListener) } catch (e: Exception) { rangeListener.onFailed(e) }
+        val stopAndroid = AndroidRangeReader.subscribe(appContext) { synchronized(lock) { androidVersion++; androidRange = it; publish() } }
+        val closed = java.util.concurrent.atomic.AtomicBoolean(false)
+        val cleanup = {
+            if (closed.compareAndSet(false, true)) {
+            stopAndroid()
+            try { v?.getEvBattery()?.unregisterEvBatteryStateOfCharge(socListener) } catch (_: Exception) { }
+            try { v?.getOdometer()?.unregisterRangeRemainingListener(rangeListener) } catch (_: Exception) { }
+            }
+            Unit
+        }
+        stopUpdates = cleanup
+        launch {
+            // 주행 가능 거리는 값이 바뀔 때만 이벤트가 온다. 값이 그대로여도 2분 뒤 '오래된 정보'가 되지 않게 30초마다 다시 읽는다.
+            while (true) {
+                val av = synchronized(lock) { androidVersion }
+                val a = AndroidRangeReader.read(appContext)
+                synchronized(lock) { if (av == androidVersion) { androidRange = a; publish() } }
+                val pv = synchronized(lock) { pleosVersion }
+                val p = readPleosRange()
+                synchronized(lock) { if (pv == pleosVersion) { pleosRange = p; publish() } }
+                kotlinx.coroutines.delay(30_000)
+            }
+        }
+        awaitClose { if (stopUpdates === cleanup) stopUpdates = null; cleanup() }
+    }
 
     override suspend fun readEfficiencyKmPerKwh(): kr.gakim.charge.domain.itinerary.Measured<Double>? {
         val v = vehicle ?: return null
@@ -115,6 +179,7 @@ class PleosVehicleGateway(context: Context) : VehicleGateway {
     }
 
     override fun release() {
+        stopUpdates?.invoke(); stopUpdates = null
         try {
             vehicle?.release()
         } catch (t: Throwable) {

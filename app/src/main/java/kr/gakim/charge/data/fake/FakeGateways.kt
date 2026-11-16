@@ -26,6 +26,17 @@ class FakeVehicleGateway(
     var soc: Int? = 25,
     var parkState: ParkState = ParkState.PARKED,
 ) : VehicleGateway {
+    override val energyUpdates = kotlinx.coroutines.flow.MutableSharedFlow<kr.gakim.charge.data.VehicleEnergyUpdate>(extraBufferCapacity = 64)
+    var range: kr.gakim.charge.domain.itinerary.Measured<Double>? = null
+    fun pushSoc(value: Int?) {
+        soc = value
+        energyUpdates.tryEmit(kr.gakim.charge.data.VehicleEnergyUpdate.Soc(value?.let { BatteryReading.Known(it) } ?: BatteryReading.Unknown("Unavailable")))
+    }
+    fun pushRange(value: kr.gakim.charge.domain.itinerary.Measured<Double>?) {
+        range = value
+        energyUpdates.tryEmit(kr.gakim.charge.data.VehicleEnergyUpdate.Range(value))
+    }
+    override suspend fun readRangeKm() = range
     override suspend fun readBatterySoc(): BatteryReading =
         soc?.let { BatteryReading.Known(it) } ?: BatteryReading.Unknown("시연: 배터리 값을 읽지 못함")
 

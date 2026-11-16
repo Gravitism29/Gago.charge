@@ -1,0 +1,2951 @@
+{
+ "generatedAt": "2026-11-16",
+ "weekdayConvention": "0=일요일, 1=월, ... 6=토. weeks는 해당 월의 n번째 해당 요일(1~4)",
+ "note": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님). 법적 근거는 해당 지자체 조례·고시 확인 필요.",
+ "districts": [
+  {
+   "sido": "강원",
+   "sigungu": "강릉시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "강원",
+   "sigungu": "동해시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 동해점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "강원",
+   "sigungu": "삼척시",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 삼척점",
+     "dates": [
+      "2026-11-25"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "강원",
+   "sigungu": "속초시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 속초점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "강원",
+   "sigungu": "원주시",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "강원",
+   "sigungu": "춘천시",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "강원",
+   "sigungu": "태백시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 태백점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "고양시",
+   "storesObserved": 10,
+   "storesAgreeing": 10,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "과천시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 과천점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "광명시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "광주시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 경기광주점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "구리시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 그랑그로서리 구리점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-25"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "군포시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "김포시",
+   "storesObserved": 5,
+   "storesAgreeing": 5,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "남양주시",
+   "storesObserved": 6,
+   "storesAgreeing": 6,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "동두천시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 동두천점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-25"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "부천시",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "성남시",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "수원시",
+   "storesObserved": 12,
+   "storesAgreeing": 12,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "시흥시",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "안산시",
+   "storesObserved": 5,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "2개 이상 주차가 확인되는 점포가 없어 주차 특정 불가(단일 회차 날짜뿐)",
+   "observed": [
+    {
+     "store": "롯데마트 상록점",
+     "dates": [
+      "2026-11-10",
+      "2026-11-22"
+     ]
+    },
+    {
+     "store": "롯데마트 선부점",
+     "dates": [
+      "2026-11-10",
+      "2026-11-22"
+     ]
+    },
+    {
+     "store": "롯데마트 안산점",
+     "dates": [
+      "2026-11-10",
+      "2026-11-22"
+     ]
+    },
+    {
+     "store": "이마트 안산고잔점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-10",
+      "2026-12-27"
+     ]
+    },
+    {
+     "store": "이마트 트레이더스 안산점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-10",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "안성시",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "안양시",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "양주시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 양주점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "양평군",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 경기양평점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "여주시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 여주점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "오산시",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "용인시",
+   "storesObserved": 10,
+   "storesAgreeing": 10,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "의왕시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "의정부시",
+   "storesObserved": 4,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "일치율 80% 미만(3/4)이거나 주차·요일 패턴에 맞지 않음",
+   "observed": [
+    {
+     "store": "롯데마트 장암점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-25"
+     ]
+    },
+    {
+     "store": "이마트 의정부점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    },
+    {
+     "store": "코스트코 의정부점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    },
+    {
+     "store": "홈플러스 의정부점",
+     "dates": [
+      "2026-11-25"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "이천시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "파주시",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "평택시",
+   "storesObserved": 5,
+   "storesAgreeing": 5,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "포천시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 포천점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "하남시",
+   "storesObserved": 4,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "일치율 80% 미만(3/4)이거나 주차·요일 패턴에 맞지 않음",
+   "observed": [
+    {
+     "store": "이마트 트레이더스 위례점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    },
+    {
+     "store": "이마트 트레이더스 하남점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    },
+    {
+     "store": "이마트 하남점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    },
+    {
+     "store": "코스트코 하남점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경기",
+   "sigungu": "화성시",
+   "storesObserved": 5,
+   "storesAgreeing": 5,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경남",
+   "sigungu": "거제시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경남",
+   "sigungu": "김해시",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경남",
+   "sigungu": "사천시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 사천점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경남",
+   "sigungu": "양산시",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경남",
+   "sigungu": "진주시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경남",
+   "sigungu": "창원시",
+   "storesObserved": 9,
+   "storesAgreeing": 9,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경남",
+   "sigungu": "통영시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "경북",
+   "sigungu": "경산시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 스타필드 마켓 경산점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경북",
+   "sigungu": "경주시",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 경주점",
+     "dates": [
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경북",
+   "sigungu": "구미시",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경북",
+   "sigungu": "김천시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경북",
+   "sigungu": "문경시",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 문경점",
+     "dates": [
+      "2026-11-25"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경북",
+   "sigungu": "상주시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 상주점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경북",
+   "sigungu": "안동시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "경북",
+   "sigungu": "영주시",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 영주점",
+     "dates": [
+      "2026-11-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경북",
+   "sigungu": "영천시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 영천점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "경북",
+   "sigungu": "포항시",
+   "storesObserved": 3,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "일치율 80% 미만(2/3)이거나 주차·요일 패턴에 맞지 않음",
+   "observed": [
+    {
+     "store": "롯데마트 포항점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-15",
+      "2026-11-22"
+     ]
+    },
+    {
+     "store": "이마트 포항이동점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    },
+    {
+     "store": "이마트 포항점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "광주",
+   "sigungu": "광산구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "광주",
+   "sigungu": "북구",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 동광주점",
+     "dates": [
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "광주",
+   "sigungu": "서구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "대구",
+   "sigungu": "남구",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 남대구점",
+     "dates": [
+      "2026-11-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "대구",
+   "sigungu": "달서구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 월요일",
+   "weekday": 1,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ]
+  },
+  {
+   "sido": "대구",
+   "sigungu": "동구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 월요일",
+   "weekday": 1,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ]
+  },
+  {
+   "sido": "대구",
+   "sigungu": "북구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 월요일",
+   "weekday": 1,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ]
+  },
+  {
+   "sido": "대구",
+   "sigungu": "서구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 트레이더스 비산점",
+     "dates": [
+      "2026-11-23",
+      "2026-12-14",
+      "2026-12-28"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "대구",
+   "sigungu": "수성구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 월요일",
+   "weekday": 1,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ]
+  },
+  {
+   "sido": "대전",
+   "sigungu": "동구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "대전",
+   "sigungu": "서구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "대전",
+   "sigungu": "유성구",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "대전",
+   "sigungu": "중구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "코스트코 대전점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "강서구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 트레이더스 명지점",
+     "dates": [
+      "2026-11-23",
+      "2026-12-14",
+      "2026-12-28"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "금정구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 금정점",
+     "dates": [
+      "2026-11-23",
+      "2026-12-14",
+      "2026-12-28"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "기장군",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 월요일",
+   "weekday": 1,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "남구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 문현점",
+     "dates": [
+      "2026-11-23",
+      "2026-12-14",
+      "2026-12-28"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "동래구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 월요일",
+   "weekday": 1,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "부산진구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 월요일",
+   "weekday": 1,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "북구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 화명점",
+     "dates": [
+      "2026-11-09",
+      "2026-11-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "사상구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 월요일",
+   "weekday": 1,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "사하구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 사하점",
+     "dates": [
+      "2026-11-09",
+      "2026-11-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "수영구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "코스트코 부산점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "연제구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 월요일",
+   "weekday": 1,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-23",
+    "2026-12-14",
+    "2026-12-28"
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "중구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 광복점",
+     "dates": [
+      "2026-11-09",
+      "2026-11-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "부산",
+   "sigungu": "해운대구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 해운대점",
+     "dates": [
+      "2026-11-23",
+      "2026-12-14",
+      "2026-12-28"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "강남구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "강동구",
+   "storesObserved": 5,
+   "storesAgreeing": 5,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "강북구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 삼양점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "강서구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "관악구",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 서울남현점",
+     "dates": [
+      "2026-11-25"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "광진구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "구로구",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "금천구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "노원구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "도봉구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "동대문구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 청량리점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-25"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "마포구",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "서초구",
+   "storesObserved": 3,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "일치율 80% 미만(2/3)이거나 주차·요일 패턴에 맞지 않음",
+   "observed": [
+    {
+     "store": "롯데마트 서초점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-25"
+     ]
+    },
+    {
+     "store": "이마트 양재점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-09",
+      "2026-12-23"
+     ]
+    },
+    {
+     "store": "코스트코 양재점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "성동구",
+   "storesObserved": 2,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "일치율 80% 미만(1/2)이거나 주차·요일 패턴에 맞지 않음",
+   "observed": [
+    {
+     "store": "롯데마트 행당역점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-25"
+     ]
+    },
+    {
+     "store": "이마트 왕십리점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "성북구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "송파구",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "양천구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "영등포구",
+   "storesObserved": 6,
+   "storesAgreeing": 6,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "용산구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 용산점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "은평구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "중구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "서울",
+   "sigungu": "중랑구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "세종",
+   "sigungu": "세종시",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "울산",
+   "sigungu": "남구",
+   "storesObserved": 2,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "2개 이상 주차가 확인되는 점포가 없어 주차 특정 불가(단일 회차 날짜뿐)",
+   "observed": [
+    {
+     "store": "롯데마트 울산점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-22"
+     ]
+    },
+    {
+     "store": "이마트 울산점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-09",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "울산",
+   "sigungu": "동구",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 울산동구점",
+     "dates": [
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "울산",
+   "sigungu": "북구",
+   "storesObserved": 2,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "2개 이상 주차가 확인되는 점포가 없어 주차 특정 불가(단일 회차 날짜뿐)",
+   "observed": [
+    {
+     "store": "롯데마트 진장점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-22"
+     ]
+    },
+    {
+     "store": "코스트코 울산점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-22",
+      "2026-12-09",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "울산",
+   "sigungu": "중구",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 울산점",
+     "dates": [
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "인천",
+   "sigungu": "검단구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 검단점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "인천",
+   "sigungu": "계양구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "인천",
+   "sigungu": "남동구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "인천",
+   "sigungu": "미추홀구",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 인하점",
+     "dates": [
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "인천",
+   "sigungu": "부평구",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "인천",
+   "sigungu": "서구",
+   "storesObserved": 3,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "일치율 80% 미만(2/3)이거나 주차·요일 패턴에 맞지 않음",
+   "observed": [
+    {
+     "store": "롯데마트 검단점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-15",
+      "2026-11-22"
+     ]
+    },
+    {
+     "store": "롯데마트 청라점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22"
+     ]
+    },
+    {
+     "store": "홈플러스 인천청라점",
+     "dates": [
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "인천",
+   "sigungu": "서해구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "코스트코 청라점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "인천",
+   "sigungu": "연수구",
+   "storesObserved": 4,
+   "storesAgreeing": 4,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "인천",
+   "sigungu": "제물포구",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "인천",
+   "sigungu": "중구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 영종도점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "전남",
+   "sigungu": "광산구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 광산점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "전남",
+   "sigungu": "광양시",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 광양점",
+     "dates": [
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "전남",
+   "sigungu": "나주시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 나주점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "전남",
+   "sigungu": "남구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 봉선점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "전남",
+   "sigungu": "목포시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "전남",
+   "sigungu": "무안군",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 남악점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "전남",
+   "sigungu": "서구",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "이마트 광주점",
+     "dates": [
+      "2026-11-22",
+      "2026-12-13",
+      "2026-12-27"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "전남",
+   "sigungu": "순천시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "전남",
+   "sigungu": "여수시",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "전북",
+   "sigungu": "군산시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "전북",
+   "sigungu": "남원시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "전북",
+   "sigungu": "익산시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "전북",
+   "sigungu": "전주시",
+   "storesObserved": 5,
+   "storesAgreeing": 5,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "전북",
+   "sigungu": "정읍시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 정읍점",
+     "dates": [
+      "2026-11-08",
+      "2026-11-22"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "제주",
+   "sigungu": "서귀포시",
+   "storesObserved": 2,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "2개 이상 주차가 확인되는 점포가 없어 주차 특정 불가(단일 회차 날짜뿐)",
+   "observed": [
+    {
+     "store": "이마트 서귀포점",
+     "dates": [
+      "2026-11-28",
+      "2026-12-11",
+      "2026-12-26"
+     ]
+    },
+    {
+     "store": "홈플러스 서귀포점",
+     "dates": [
+      "2026-11-28"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "제주",
+   "sigungu": "제주시",
+   "storesObserved": 3,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "2개 이상 주차가 확인되는 점포가 없어 주차 특정 불가(단일 회차 날짜뿐)",
+   "observed": [
+    {
+     "store": "롯데마트 제주점",
+     "dates": [
+      "2026-11-13",
+      "2026-11-28"
+     ]
+    },
+    {
+     "store": "이마트 신제주점",
+     "dates": [
+      "2026-11-28",
+      "2026-12-11",
+      "2026-12-26"
+     ]
+    },
+    {
+     "store": "이마트 제주점",
+     "dates": [
+      "2026-11-28",
+      "2026-12-11",
+      "2026-12-26"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "충남",
+   "sigungu": "논산시",
+   "storesObserved": 1,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "홈플러스 논산점",
+     "dates": [
+      "2026-11-23"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "충남",
+   "sigungu": "당진시",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 당진점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-25"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "충남",
+   "sigungu": "보령시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "충남",
+   "sigungu": "서산시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "충남",
+   "sigungu": "아산시",
+   "storesObserved": 3,
+   "storesAgreeing": 3,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "충남",
+   "sigungu": "천안시",
+   "storesObserved": 5,
+   "storesAgreeing": 5,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "충남",
+   "sigungu": "홍성군",
+   "storesObserved": 1,
+   "storesAgreeing": 1,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "관찰 점포 2곳 미만",
+   "observed": [
+    {
+     "store": "롯데마트 홍성점",
+     "dates": [
+      "2026-11-11",
+      "2026-11-25"
+     ]
+    }
+   ]
+  },
+  {
+   "sido": "충북",
+   "sigungu": "제천시",
+   "storesObserved": 2,
+   "storesAgreeing": 2,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 일요일",
+   "weekday": 0,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-22",
+    "2026-12-13",
+    "2026-12-27"
+   ]
+  },
+  {
+   "sido": "충북",
+   "sigungu": "청주시",
+   "storesObserved": 6,
+   "storesAgreeing": 6,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": "둘째·넷째 수요일",
+   "weekday": 3,
+   "weeks": [
+    2,
+    4
+   ],
+   "exampleDates": [
+    "2026-11-25",
+    "2026-12-09",
+    "2026-12-23"
+   ]
+  },
+  {
+   "sido": "충북",
+   "sigungu": "충주시",
+   "storesObserved": 2,
+   "storesAgreeing": 0,
+   "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+   "pattern": null,
+   "weekday": null,
+   "weeks": null,
+   "exampleDates": [],
+   "reason": "2개 이상 주차가 확인되는 점포가 없어 주차 특정 불가(단일 회차 날짜뿐)",
+   "observed": [
+    {
+     "store": "롯데마트 충주점",
+     "dates": [
+      "2026-11-10",
+      "2026-11-25"
+     ]
+    },
+    {
+     "store": "이마트 충주점",
+     "dates": [
+      "2026-11-25",
+      "2026-12-10",
+      "2026-12-25"
+     ]
+    }
+   ]
+  }
+ ]
+}

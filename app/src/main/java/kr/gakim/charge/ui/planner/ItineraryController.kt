@@ -20,12 +20,15 @@ data class PlannerState(
     val currentRoute: NaviRead? = null, val routeReadAt: LocalDateTime? = null,
     val savedPlaces: List<Place> = emptyList(), val energy: Energy = Energy(), val park: ParkState = ParkState.UNKNOWN,
     val parkReadAt:LocalDateTime?=null,
-    val loading: Boolean = false, val message: String? = null, val inputBlocker: String? = null, val question: SpeechQuestion? = null,
+    val searchingPlaces: Boolean = false, val loading: Boolean = false, val message: String? = null, val inputBlocker: String? = null, val question: SpeechQuestion? = null,
     val pendingTime: PendingTime? = null, val transcript: String = "", val partial: String = "", val applied: List<String> = emptyList(),
     val speechSource: String = "", val listening: Boolean = false, val level: Float = 0f,
     val usingFakes: Boolean = false, val demoRoutes: Boolean = true, val demoEnergy: Boolean = false,
     val demoClock: Boolean = false, val tts: Boolean = false,
     val phase: ApplyPhase = ApplyPhase.IDLE, val applyMessage: String = "", val actualRoute: NaviRoute? = null,
+    val requestSent: Boolean = false,
+    val sourceStatuses: List<kr.gakim.charge.data.remote.SourceStatus> = emptyList(),
+    val reviewedRoute: NaviRoute? = null,
     val acknowledged: Boolean = false, val parkedConfirmed: Boolean = false, val parkedConfirmedAt:LocalDateTime?=null, val ownHandoff: Boolean = false,
 ) {
     val selected: Option? get() = options.firstOrNull { it.id == selectedId }
@@ -39,8 +42,47 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
                           private val clock: () -> LocalDateTime = LocalDateTime::now,
                           private val journal: RouteJournal = NoRouteJournal,
                           private val verifyAttempts: Int = 15, private val verifyDelayMs: Long = 1000) {
-    private val mutable = MutableStateFlow(PlannerState(now = clock(), usingFakes = gateways.usingFakes))
+    private val mutable = MutableStateFlow(PlannerState(now = clock(), usingFakes = gateways.usingFakes, sourceStatuses = repository.sourceStatuses))
     val state: StateFlow<PlannerState> = mutable.asStateFlow()
+    private var realEnergy = Energy()
+    private var socVersion = 0L
+    private var rangeVersion = 0L
+    suspend fun observeEnergy() {
+        val g = gateways
+        g.vehicle.energyUpdates.collect { update ->
+            if (g === gateways) {
+                when (update) {
+                    is VehicleEnergyUpdate.Soc -> {
+                        socVersion++
+                        realEnergy = realEnergy.copy(socPercent = (update.reading as? BatteryReading.Known)?.let {
+                            Measured(it.percent, Evidence(if(g.usingFakes) "차량 모의 값" else "Vehicle SOC", now(), g.usingFakes))
+                        })
+                    }
+                    is VehicleEnergyUpdate.Range -> { rangeVersion++; realEnergy = realEnergy.copy(rangeKm = update.reading) }
+                }
+                if (!state.value.demoEnergy && !simulateMissing) applyEnergy(realEnergy)
+            }
+        }
+    }
+    private fun energyChanged(a: Energy, b: Energy) =
+        a.socPercent?.value != b.socPercent?.value || a.rangeKm?.value != b.rangeKm?.value ||
+            a.rangeKm?.evidence?.source != b.rangeKm?.evidence?.source || a.kmPerKwh?.value != b.kmPerKwh?.value
+    private fun applyEnergy(energy: Energy) {
+        val s = state.value
+        val changed = energyChanged(s.energy, energy)
+        if (!changed) {
+            // 근거 시각이 화면 시계(s.now)보다 뒤면 fresh() 가 '미래 값'으로 버린다. 값이 그대로여도 시계를 함께 당긴다.
+            val at = now()
+            set(s.copy(energy = energy, now = if (at.isAfter(s.now)) at else s.now)); return
+        }
+        // Invalidate a pre-send confirmation; an already sent request still needs verification.
+        if (changed && s.busy && !s.ownHandoff) revision++
+        set(calculate(s.copy(energy = energy, now = now(),
+            phase = if(changed && s.busy && !s.ownHandoff) ApplyPhase.IDLE else s.phase,
+            acknowledged = if(changed) false else s.acknowledged,
+            approvalKey = if(changed) null else s.approvalKey)))
+    }
+    private var remoteGeneration = 0L
     private var revision = 0L
     private var readGeneration = 0L
     private var parkGeneration=0L
@@ -59,7 +101,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         if (state.value.busy || state.value.park == ParkState.MOVING) return
         revision++
         val s = change(state.value).copy(revision = revision, phase = ApplyPhase.IDLE, acknowledged = false,
-            approvalKey=null,allowRecommendation=true,applyMessage = "", actualRoute = null, loading = false)
+            approvalKey=null,allowRecommendation=true,applyMessage = "", actualRoute = null, requestSent=false, reviewedRoute=null, loading = false)
         val at = if(s.demoClock) clock().toLocalDate().atTime(13,0) else clock()
         set(calculate(s.copy(now = at)))
     }
@@ -114,7 +156,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             .copy(pendingTime = null, message = if (tomorrow) "내일 일정으로 정했어요." else "오늘 이미 지난 마감입니다. 후보에 지각 시간이 표시됩니다.")
     }
     fun setDemoRoutes(enabled: Boolean) = edit { it.copy(demoRoutes = enabled) }
-    fun setDemoEnergy(enabled: Boolean) = edit { it.copy(demoEnergy = enabled, energy = if (enabled) repository.demoEnergy(now()) else Energy()) }
+    fun setDemoEnergy(enabled: Boolean) = edit { it.copy(demoEnergy = enabled, energy = if (enabled) repository.demoEnergy(now()) else realEnergy) }
     fun setDemoClock(enabled: Boolean) = edit { it.copy(demoClock = enabled, plan = it.plan.copy(departure = null)) }
     fun setTts(enabled: Boolean) { set(state.value.copy(tts = enabled)) }
     fun setAcknowledged(value: Boolean) {
@@ -131,9 +173,22 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         val s = state.value
         if (s.selected == null || s.question!=null || s.pendingTime!=null || s.departureExpired) { set(s.copy(message = "장소·충전 방식과 출발 시각을 확인해 주세요.")); return }
         approvedBaseline = (s.currentRoute as? NaviRead.Known)?.route
-        set(s.copy(screen = 2, selectionExplicit=true, acknowledged = false, approvalKey=null,phase = ApplyPhase.IDLE, applyMessage = ""))
+        set(s.copy(screen = 2, selectionExplicit=true, acknowledged = false, approvalKey=null,phase = ApplyPhase.IDLE, requestSent=false, reviewedRoute=approvedBaseline, applyMessage = ""))
     }
     fun back() { if (!state.value.busy) set(state.value.copy(screen = (state.value.screen - 1).coerceAtLeast(0))) }
+    fun restart() = edit { it.copy(plan=Itinerary(),screen=0,selectedId=null,selectionExplicit=false,
+        transcript="",partial="",applied=emptyList(),question=null,pendingTime=null,message=null) }
+    /** Materialize the selected candidate before appending: no unresolved stop is silently replaced. */
+    fun keepExistingDestination() {
+        val s=state.value
+        if(s.busy || s.park==ParkState.MOVING || !s.canKeepDestination()) return
+        val chosen=s.selected ?: return
+        val destination=(s.currentRoute as? NaviRead.Known)?.route?.destination ?: return
+        edit { it.copy(plan=it.plan.copy(visits=chosen.visits + Visit(nextId++,Activity.CUSTOM,"방문",
+            place=resolvedPlace(destination),stayMinutes=0)),selectedId=null,selectionExplicit=false) }
+        val matching=state.value.options.firstOrNull { it.mode==chosen.mode && it.chargeVisitId==chosen.chargeVisitId && it.selectable }
+        if(matching!=null) { select(matching.id); guide() }
+    }
     fun importRoute() {
         val s=state.value;if(s.busy || s.park==ParkState.MOVING) return
         val route=(s.currentRoute as? NaviRead.Known)?.route
@@ -155,15 +210,16 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         }
     }
     fun replaceGateways(g: GatewaySet) {
-        revision++; readGeneration++; gateways = g; tripCache.clear(); approvedBaseline = null
+        revision++; readGeneration++; realEnergy = Energy(); socVersion++; rangeVersion++; gateways = g; tripCache.clear(); approvedBaseline = null
         set(state.value.copy(usingFakes = g.usingFakes, currentRoute = null, energy = Energy(), options = emptyList(), selectedId = null, phase = ApplyPhase.IDLE, listening = false))
     }
     suspend fun refresh() {
         if (state.value.busy) return
+        val socToken = socVersion
+        val rangeToken = rangeVersion
         val token = ++readGeneration
-        revision++
         val g = gateways
-        set(state.value.copy(loading = true, revision = revision))
+        set(state.value.copy(loading = true))
         try {
             val battery = if (simulateMissing) BatteryReading.Unknown("시연 미수신") else g.vehicle.readBatterySoc()
             activeRead(token,g)
@@ -176,13 +232,18 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             val route = if (simulateMissing) NaviRead.Unknown("시연: 내비 데이터 미수신") else g.navi.readRoute(); activeRead(token,g)
             val saved = if (simulateMissing) emptyList() else g.navi.readSavedPlaces(); activeRead(token,g)
             val at = now()
-            val energy = if (state.value.demoEnergy && !simulateMissing) repository.demoEnergy(at) else Energy(range, efficiency,
+            val readEnergy = Energy(range, efficiency,
                 (battery as? BatteryReading.Known)?.let { Measured(it.percent, Evidence(if(g.usingFakes) "차량 모의 값" else "Vehicle SOC", at, g.usingFakes)) })
+            realEnergy = readEnergy.copy(
+                socPercent = if(socToken == socVersion) readEnergy.socPercent else realEnergy.socPercent,
+                rangeKm = if(rangeToken == rangeVersion) readEnergy.rangeKm else realEnergy.rangeKm)
+            val energy = if(simulateMissing) Energy() else if(state.value.demoEnergy) repository.demoEnergy(at) else realEnergy
+            val changed = energyChanged(state.value.energy, energy)
             val known = (route as? NaviRead.Known)?.route?.let { it.waypoints + listOfNotNull(it.destination) }.orEmpty()
             val acceptedPark=if(parkToken==parkGeneration) park else state.value.park
             val acceptedParkAt=if(parkToken==parkGeneration) parkAt else state.value.parkReadAt
             val keepManual=acceptedPark==state.value.park && acceptedPark!=ParkState.MOVING && freshManualPark(state.value)
-            set(calculate(state.value.copy(energy = energy, park = acceptedPark, parkReadAt=acceptedParkAt,currentRoute = route, routeReadAt = at,
+            set(calculate(state.value.copy(energy = energy, acknowledged = if(changed) false else state.value.acknowledged, approvalKey = if(changed) null else state.value.approvalKey, park = acceptedPark, parkReadAt=acceptedParkAt,currentRoute = route, routeReadAt = at,
                 parkedConfirmed=keepManual,parkedConfirmedAt=if(keepManual) state.value.parkedConfirmedAt else null,
                 savedPlaces = (known.map(::resolvedPlace) + saved.filterNot { it.isBlankPlace() }.map { it.toPlace("내비 즐겨찾기·최근 장소") }).filter { it.name.isNotBlank() }.distinctBy { it.id }, loading = false, now = at)))
             val pending = journal.load()
@@ -198,16 +259,36 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         } finally { if (token == readGeneration && g===gateways) set(state.value.copy(loading = false)) }
     }
     suspend fun previewRoutes() {
-        if (state.value.demoRoutes || state.value.busy) return
-        val token = revision
+        if (state.value.busy) return
+        val plan = state.value.plan
+        val signature = plan.visits to plan.departure
+        val g = gateways
+        val generation = ++remoteGeneration
+        fun current() = generation == remoteGeneration && g === gateways &&
+            signature == (state.value.plan.visits to state.value.plan.departure)
+        fun publish() {
+            if (current()) set(calculate(state.value.copy(sourceStatuses = repository.sourceStatuses,
+                searchingPlaces = repository.searchingPlaces)))
+        }
+        repository.beginRemote(plan)
+        set(calculate(state.value.copy(searchingPlaces = repository.searchingPlaces, sourceStatuses = repository.sourceStatuses)))
+        val searchStarted = System.nanoTime()
+        val position = if (repository.needsPosition && !g.usingFakes)
+            kotlinx.coroutines.withTimeoutOrNull(8_000) { g.navi.currentPosition() } else null
+        if (!current()) return
+        val budget = (8_000 - (System.nanoTime() - searchStarted) / 1_000_000).coerceAtLeast(0)
+        repository.refreshRemote(plan, position, now(), ::current, ::publish, budget)
+        if (!current()) return
+        publish()
+        if (state.value.demoRoutes) return
         val visits = state.value.plan.visits
         val first = visits.firstOrNull() ?: return
         for (place in repository.candidates(first)) {
             if (tripCache[place.id]?.let { Evidence(it.source, it.observedAt).fresh(now(), 120) } == true) continue
-            val result = gateways.navi.previewTrip(place.toNavi()); active(token)
+            val result = gateways.navi.previewTrip(place.toNavi()); if (!current()) return
             if (result != null) tripCache[place.id] = result
         }
-        active(token); set(calculate(state.value))
+        if (!current()) return; set(calculate(state.value))
     }
     suspend fun refreshPark() {
         if(state.value.busy) return
@@ -225,6 +306,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         o.visits.map { listOf(it.id,it.activity,it.customLabel,it.place?.id,it.place?.latitude,it.place?.longitude,it.stayMinutes,it.deadline) },
         o.results.map { listOf(it.arrival?.withSecond(0)?.withNano(0),it.slackMinutes) },o.evidence.map { it.source to it.demo }).toString()
     private fun calculate(s: PlannerState): PlannerState {
+        val calculationEnergy=s.energy.copy(rangeKm=s.energy.usableRange(s.now))
         val unresolved = s.plan.visits.filter { it.place == null }
         if (unresolved.size > 1) return s.copy(options = emptyList(), selectedId = null, selectionExplicit=false,
             inputBlocker = "장소 미정인 볼일이 여러 개예요. 한 곳의 장소부터 골라 주세요.")
@@ -244,19 +326,23 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             val chargeIndices=visits.indices.toList()
             val modes = if (s.plan.chargeMode == ChargeMode.AUTO) listOf(ChargeMode.NONE, ChargeMode.TOP_UP, ChargeMode.REQUIRED)
                 else listOf(s.plan.chargeMode)
-            val raw=modes.flatMap { mode -> if(mode==ChargeMode.NONE) listOf(evaluateItinerary(plan,legs,mode,null,null,s.energy,s.now))
+            val raw=modes.flatMap { mode -> if(mode==ChargeMode.NONE) listOf(evaluateItinerary(plan,legs,mode,null,null,calculationEnergy,s.now))
                 else chargeIndices.map { idx ->
                     val site=repository.charging(visits[idx].place!!,s.now) ?: ChargingSite(Availability.UNKNOWN,evidence=Evidence("충전 시설 정보 없음",s.now))
-                    evaluateItinerary(plan,legs,mode,idx,site,s.energy,s.now)
+                    evaluateItinerary(plan,legs,mode,idx,site,calculationEnergy,s.now)
                 } }
-            val baseline = evaluateItinerary(plan, legs, ChargeMode.NONE, null, null, s.energy, s.now).totalMinutes
+            val baseline = evaluateItinerary(plan, legs, ChargeMode.NONE, null, null, calculationEnergy, s.now).totalMinutes
             raw.map { o ->
-                o.copy(extraMinutes = if(o.totalMinutes != null && baseline != null) o.totalMinutes!! - baseline else null)
+                o.copy(extraMinutes = if(o.totalMinutes != null && baseline != null) o.totalMinutes!! - baseline else null,
+                    closingNotices = o.results.mapNotNull { result -> result.visit.place?.let { place ->
+                        repository.closingCalendar.notice(place.name, (result.arrival ?: result.visit.deadline ?: plan.departure ?: s.now).toLocalDate(), s.now.toLocalDate(), place.address)
+                    } })
             }
         }
         val previous = s.selectedId?.takeIf { id -> s.selectionExplicit && options.any { it.id == id && it.selectable } }
-        val next=s.copy(options = options, selectedId = previous ?: if(s.allowRecommendation) recommend(options)?.id else null, selectionExplicit = previous != null,
-            inputBlocker=when { s.departureExpired -> "출발 예정 시각이 지났어요. 지금 출발하거나 새 시각을 정해 주세요.";candidates.isEmpty() -> "이 볼일의 장소를 먼저 지정해 주세요.";else->null })
+        val searching = repository.searchingPlaces && unresolved.any { it.activity == Activity.SHOP }
+        val next=s.copy(searchingPlaces = searching, options = options, selectedId = previous ?: if(s.allowRecommendation) recommend(options)?.id else null, selectionExplicit = previous != null,
+            inputBlocker=when { s.departureExpired -> "출발 예정 시각이 지났어요. 지금 출발하거나 새 시각을 정해 주세요.";candidates.isEmpty() && !searching -> "이 볼일의 장소를 먼저 지정해 주세요.";else->null })
         return if(next.acknowledged && next.approvalKey!=next.selected?.let(::reviewKey)) next.copy(acknowledged=false,approvalKey=null,
             applyMessage="표시된 도착·충전 조건이 바뀌었어요. 다시 확인해 주세요.") else next
     }
@@ -321,7 +407,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             val baseline = approvedBaseline
             if (baseline == null || !sameRoute(current.route, baseline)) {
                 approvedBaseline = current.route
-                set(state.value.copy(phase = ApplyPhase.IDLE, currentRoute = current, acknowledged = false,
+                set(state.value.copy(phase = ApplyPhase.IDLE, currentRoute = current, reviewedRoute=current.route, acknowledged = false,
                     applyMessage = "내비 경로가 바뀌었어요. 아래 현재 경로와 방문 순서를 확인하고 다시 승인해 주세요.")); return
             }
             val places = option.visits.map { it.place!!.toNavi() }
@@ -353,7 +439,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
                 journal.save(null)
                 set(state.value.copy(phase = ApplyPhase.FAILED, ownHandoff = false, applyMessage = "요청 실패: ${request.reason}")); return
             }
-            set(state.value.copy(phase = ApplyPhase.VERIFYING, applyMessage = "요청 전송됨 · 차량 내비 반영을 다시 읽는 중"))
+            set(state.value.copy(phase = ApplyPhase.VERIFYING, requestSent=true, applyMessage = "요청 전송됨 · 차량 내비 반영을 다시 읽는 중"))
             repeat(verifyAttempts) {
                 delay(verifyDelayMs); active(token)
                 val read = g.navi.readRoute(); active(token)
@@ -381,7 +467,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
     fun stop() {
         speechStopped()
         if(!state.value.ownHandoff) {
-            revision++;readGeneration++
+            revision++;readGeneration++;remoteGeneration++
             set(state.value.copy(loading=false,phase=if(state.value.busy) ApplyPhase.IDLE else state.value.phase,
                 acknowledged=false,parkedConfirmed=false,parkedConfirmedAt=null,applyMessage=if(state.value.busy) "전송 전 화면을 벗어나 중단했어요. 다시 확인해 주세요." else state.value.applyMessage))
         }

@@ -6,7 +6,6 @@ import android.car.VehiclePropertyIds
 import android.car.hardware.CarPropertyValue
 import android.car.hardware.property.CarPropertyManager
 import android.content.Context
-import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,8 +13,32 @@ import kr.gakim.charge.domain.itinerary.Evidence
 import kr.gakim.charge.domain.itinerary.Measured
 import java.time.LocalDateTime
 
-/** Public Android Automotive RANGE_REMAINING, meters. No deprecated hidden Pleos range API. */
+/** Public Android RANGE_REMAINING, meters. */
 object AndroidRangeReader {
+    @SuppressLint("MissingPermission")
+    fun subscribe(context: Context, changed: (Measured<Double>?) -> Unit): () -> Unit {
+        var car: Car? = null
+        var manager: CarPropertyManager? = null
+        val callback = object : CarPropertyManager.CarPropertyEventCallback {
+            override fun onChangeEvent(value: CarPropertyValue<*>) {
+                if (value.propertyId == VehiclePropertyIds.RANGE_REMAINING) changed(
+                    if (value.status == CarPropertyValue.STATUS_AVAILABLE)
+                        rangeFromMeters((value.value as? Number)?.toDouble(), "Android RANGE_REMAINING") else null)
+            }
+            override fun onErrorEvent(propertyId: Int, areaId: Int) { changed(null) }
+        }
+        try {
+            car = Car.createCar(context)
+            manager = car?.getCarManager(Car.PROPERTY_SERVICE) as? CarPropertyManager
+            manager?.registerCallback(callback, VehiclePropertyIds.RANGE_REMAINING, CarPropertyManager.SENSOR_RATE_ONCHANGE)
+        } catch (e: Exception) { changed(null) }
+        catch (e: LinkageError) { changed(null) }
+        return {
+            try { manager?.unregisterCallback(callback) } catch (_: Exception) { }
+            finally { car?.disconnect() }
+        }
+    }
+
     @SuppressLint("MissingPermission")
     suspend fun read(context: Context): Measured<Double>? = withContext(Dispatchers.IO) {
         var car: Car? = null
@@ -24,10 +47,9 @@ object AndroidRangeReader {
             val manager = car?.getCarManager(Car.PROPERTY_SERVICE) as? CarPropertyManager ?: return@withContext null
             val value = manager.getProperty(Float::class.javaObjectType, VehiclePropertyIds.RANGE_REMAINING, 0)
             val meters = value?.value?.toDouble() ?: return@withContext null
-            if (value.status != CarPropertyValue.STATUS_AVAILABLE || !meters.isFinite() || meters < 0 || value.timestamp <= 0) return@withContext null
-            val ageNanos = SystemClock.elapsedRealtimeNanos() - value.timestamp
-            if (ageNanos < 0) return@withContext null
-            Measured(meters / 1000.0, Evidence("Android Automotive RANGE_REMAINING", LocalDateTime.now().minusNanos(ageNanos)))
+            if (value.status != CarPropertyValue.STATUS_AVAILABLE || !meters.isFinite() || meters <= 0 || value.timestamp <= 0) return@withContext null
+            // timestamp 는 값이 마지막으로 '바뀐' 시각이다(ONCHANGE 속성). 방금 읽은 현재 값이므로 읽은 시각을 근거로 남긴다.
+            Measured(meters / 1000.0, Evidence("Android RANGE_REMAINING", LocalDateTime.now()))
         } catch (e: Exception) {
             Log.w("GakimRange", "RANGE_REMAINING unavailable: ${e.javaClass.simpleName}: ${e.message}")
             null

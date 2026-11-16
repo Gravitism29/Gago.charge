@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-11-16",
+  "weekdayConvention": "0=일요일, 1=월, ... 6=토. weeks는 해당 월의 n번째 해당 요일(1~4)",
+  "note": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님). 법적 근거는 해당 지자체 조례·고시 확인 필요.",
+  "districts": [
+    {
+      "sido": "강원",
+      "sigungu": "강릉시",
+      "storesObserved": 2,
+      "storesAgreeing": 2,
+      "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+      "pattern": "둘째·넷째 수요일",
+      "weekday": 3,
+      "weeks": [
+        2,
+        4
+      ],
+      "exampleDates": [
+        "2026-11-25",
+        "2026-12-09",
+        "2026-12-23"
+      ]
+    },
+    {
+      "sido": "강원",
+      "sigungu": "동해시",
+      "storesObserved": 1,
+      "storesAgreeing": 1,
+      "basis": "공식 점포 안내의 휴무일에서 관찰한 패턴(조례·고시 원문 아님)",
+      "pattern": null,
+      "weekday": null,
+      "weeks": null,
+      "exampleDates": [],
+      "reason": "관찰 점포 2곳 미만",
+      "observed": [
+        {
+          "store": "이마트 동해점",
+          "dates": [
+            "2026-11-22",
+            "2026-12-13",
+            "2026-12-27"
+          ]
+        }
+      ]
+    }
+  ]
+}

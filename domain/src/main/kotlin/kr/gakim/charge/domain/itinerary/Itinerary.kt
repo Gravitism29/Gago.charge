@@ -6,7 +6,7 @@ import kotlin.math.ceil
 
 enum class Activity(val label: String) { SHOP("장보기"), MEAL("식사"), HOSPITAL("병원 방문"), COLLECT("물건 수령"), PICKUP("픽업"), CUSTOM("직접 입력"), CHARGE("충전") }
 enum class ChargeMode(val label: String) { AUTO("알아서 비교"), NONE("충전 안 함"), TOP_UP("볼일 중 보충"), REQUIRED("필요한 양까지") }
-enum class Availability { AVAILABLE, UNKNOWN, INCOMPATIBLE, UNAVAILABLE }
+enum class Availability { AVAILABLE, CHARGING, UNKNOWN, INCOMPATIBLE, UNAVAILABLE }
 
 data class Evidence(val source: String, val observedAt: LocalDateTime, val demo: Boolean = false) {
     fun fresh(now: LocalDateTime, seconds: Long = 120): Boolean = Duration.between(observedAt, now).seconds in 0..seconds
@@ -14,7 +14,7 @@ data class Evidence(val source: String, val observedAt: LocalDateTime, val demo:
 data class Measured<T>(val value: T, val evidence: Evidence)
 data class Place(val id: String, val name: String, val latitude: Double, val longitude: Double,
                  val address: String = "", val poiId: String = "", val poiSubId: String = "",
-                 val demo: Boolean = false, val source: String = "사용자 지정") {
+                 val demo: Boolean = false, val source: String = "사용자 지정", val searchDistanceMeters: Double? = null) {
     val validCoordinates: Boolean get() = latitude.isFinite() && longitude.isFinite() && latitude in -90.0..90.0 && longitude in -180.0..180.0 && (latitude != 0.0 || longitude != 0.0)
 }
 data class Visit(val id: Long, val activity: Activity = Activity.SHOP, val customLabel: String = "",
@@ -29,7 +29,7 @@ data class ChargingSite(val availability: Availability, val parkingMinutes: Int 
                         val connectMinutes: Int = 2, val disconnectMinutes: Int = 1,
                         val waitMinutes: Measured<Int>? = null, val effectivePowerKw: Measured<Double>? = null,
                         val overlapVerified: Boolean = false, val evidence: Evidence,
-                        val note: String = "")
+                        val note: String = "", val accessTimesKnown: Boolean = true)
 data class Energy(val rangeKm: Measured<Double>? = null, val kmPerKwh: Measured<Double>? = null,
                   val socPercent: Measured<Int>? = null)
 enum class EnergyStatus { OPTIONAL, NEED_CHARGE, CANNOT_REACH, UNKNOWN }
@@ -39,7 +39,8 @@ data class Option(val id: String, val visits: List<Visit>, val results: List<Vis
                   val totalMinutes: Long?, val totalDistanceKm: Double?, val extraMinutes: Long?,
                   val chargeMinutes: Int?, val energyKwh: Double?, val energy: EnergyDecision,
                   val selectable: Boolean, val conditions: List<String>, val evidence: List<Evidence>,
-                  val chargingStatus: Availability? = null, val chargeVisitId: Long? = null) {
+                  val chargingStatus: Availability? = null, val chargeVisitId: Long? = null,
+                  val closingNotices: List<ClosingNotice> = emptyList(), val chargingNote: String = "") {
     val critical: VisitResult? get() = results.filter { it.visit.deadline != null }.minByOrNull { it.slackMinutes ?: Long.MAX_VALUE } ?: results.lastOrNull()
     val late: Boolean get() = results.any { (it.slackMinutes ?: 0) < 0 }
 }
@@ -70,7 +71,7 @@ fun evaluateItinerary(plan: Itinerary, legs: List<Leg>, mode: ChargeMode, charge
     val charging = mode != ChargeMode.NONE && chargeIndex != null
     val chargingStatus = when {
         mode == ChargeMode.NONE -> null
-        site == null || !site.evidence.fresh(now, 300) -> Availability.UNKNOWN
+        site == null || !site.evidence.fresh(now, if (site.evidence.source.startsWith("한국환경공단")) 600 else 300) -> Availability.UNKNOWN
         else -> site.availability
     }
     val chargeVisitId = if (charging) plan.visits.getOrNull(chargeIndex!!)?.id else null
@@ -97,6 +98,7 @@ fun evaluateItinerary(plan: Itinerary, legs: List<Leg>, mode: ChargeMode, charge
             conditions += "대기 시간 미확인 · 바로 충전할 경우의 조건부 예상"
             conditions += "필요 충전량·충전 시간 산정 근거 부족"
         } else {
+            if (!site.evidence.demo && site.note.isNotBlank()) conditions += site.note
             if (chargingStatus == Availability.UNKNOWN) conditions += "충전기 상태 미확인 · 현장 확인 필요"
             if (site.waitMinutes == null || !site.waitMinutes.evidence.fresh(now, 300)) conditions += "대기 시간 미확인 · 바로 충전할 경우의 조건부 예상"
             val efficiency = energy.kmPerKwh?.takeIf { it.evidence.fresh(now) && it.value.isFinite() && it.value > 0 }?.value
@@ -145,7 +147,7 @@ fun evaluateItinerary(plan: Itinerary, legs: List<Leg>, mode: ChargeMode, charge
         val arrival = cursor
         val activityMinutes = if (visit.activity == Activity.CHARGE) 0 else visit.stayMinutes
         val dwell = if (charging && index == chargeIndex) {
-            if (site == null || chargeMinutes == null) null else stopMinutes(activityMinutes, chargeMinutes!!,
+            if (site == null || chargeMinutes == null || !site.accessTimesKnown) null else stopMinutes(activityMinutes, chargeMinutes!!,
                 site.copy(waitMinutes = site.waitMinutes?.takeIf { it.evidence.fresh(now, 300) }))
         } else activityMinutes
         cursor = if (cursor != null && dwell != null) cursor!!.plusMinutes(dwell.toLong()) else null
@@ -155,10 +157,11 @@ fun evaluateItinerary(plan: Itinerary, legs: List<Leg>, mode: ChargeMode, charge
     val evidence = (legs.flatMap { listOfNotNull(it.minutes?.evidence, it.distanceKm?.evidence) } + listOfNotNull(energy.rangeKm?.evidence, energy.kmPerKwh?.evidence, site?.evidence)).distinct()
     return Option(plan.visits.joinToString("-") { it.place?.id ?: "?" } + ":${mode.name}:${chargeVisitId ?: "none"}", plan.visits, results, mode,
         cursor?.let { Duration.between(depart, it).toMinutes() }, if (allDistances.all { it != null }) allDistances.filterNotNull().sum() else null,
-        null, chargeMinutes, energyKwh, decision, selectable, conditions.distinct(), evidence, chargingStatus, chargeVisitId)
+        null, chargeMinutes, energyKwh, decision, selectable, conditions.distinct(), evidence, chargingStatus, chargeVisitId,
+        chargingNote = site?.takeUnless { it.evidence.demo }?.note.orEmpty())
 }
 
-fun recommend(options: List<Option>): Option? = options.filter { it.selectable && !it.late && it.totalMinutes != null &&
+fun recommend(options: List<Option>): Option? = options.filter { it.selectable && !it.late && it.closingNotices.isEmpty() && it.totalMinutes != null &&
     (it.mode == ChargeMode.NONE || it.chargingStatus == Availability.AVAILABLE) &&
     (it.energy.status == EnergyStatus.OPTIONAL || it.energy.status == EnergyStatus.NEED_CHARGE && it.mode == ChargeMode.REQUIRED && it.chargeMinutes != null) }
     .minByOrNull { it.totalMinutes!! }

@@ -42,10 +42,13 @@ internal fun PlannerGuide(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
                         modifier=Modifier.heightIn(min=56.dp).clickable { s.selected?.let { open("details:${it.id}") } }.wrapContentHeight())
                 }
                 FitLine(clock(s.selected?.results?.lastOrNull()?.finish),GakimType.Big)
+                if(!applied) s.departureShiftLine()?.let { Text(it,style=GakimType.Caption,color=GakimColors.Voice) }
                 s.selected?.let { option ->
-                    Text(option.mode.driverLabel(),style=GakimType.Title,color=GakimColors.Accent)
                     val place=option.visits.firstOrNull { it.id==option.chargeVisitId }?.place
-                    Text(benefitLine(option,s.energy,s.now,place?.id?.let(s.chargingSites::get)),style=GakimType.Body)
+                    val site=place?.id?.let(s.chargingSites::get)
+                    savedTimeLine(option,site)?.let { FitLine(it,GakimType.Title.copy(color=GakimColors.Accent)) }
+                    Text(option.mode.driverLabel()+(socChangeLine(option,s.energy,s.now)?.let { " · $it" } ?: ""),style=GakimType.Title,color=GakimColors.Accent)
+                    Text(benefitLine(option,s.energy,s.now,site),style=GakimType.Body)
                     option.critical?.visit?.deadline?.let {
                         Text("${at(it,s.now)}까지 · ${option.deadlineLabel()}",style=GakimType.BodyBold,color=if(option.late) GakimColors.Tight else GakimColors.Text)
                     }
@@ -78,7 +81,7 @@ internal fun PlannerGuide(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
             RouteChoiceButton("${name}도 들르기","경유지로 추가해요",{},Modifier.fillMaxWidth(),false,true)
         }
         if(s.phase!=ApplyPhase.IDLE) RouteTracker(s)
-        if(s.applyMessage.isNotBlank() && s.phase in listOf(ApplyPhase.IDLE,ApplyPhase.FAILED,ApplyPhase.UNCONFIRMED)) Text(s.applyMessage,style=GakimType.Body,color=GakimColors.Tight,maxLines=3,overflow=TextOverflow.Ellipsis)
+        if(s.applyMessage.isNotBlank() && s.phase in listOf(ApplyPhase.IDLE,ApplyPhase.FAILED,ApplyPhase.UNCONFIRMED)) Text(s.applyMessage,style=GakimType.Body,color=if(isInfoApplyMessage(s.applyMessage)) GakimColors.Voice else GakimColors.Tight,maxLines=3,overflow=TextOverflow.Ellipsis)
         if(s.actualRoute!=null && !applied) Text("현재 확인한 경로: ${routeText(s.actualRoute)}",style=GakimType.Caption,maxLines=2)
         if(s.park==ParkState.UNKNOWN && !applied) PlannerPill(if(s.parkedConfirmed) "✓ 주차 중이에요" else "주차 중이에요 · 눌러서 확인",{c.setParked(!s.parkedConfirmed)},Modifier.fillMaxWidth(),enabled,s.parkedConfirmed)
         if(!applied) {

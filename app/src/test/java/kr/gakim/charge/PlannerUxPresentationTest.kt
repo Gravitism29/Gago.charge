@@ -46,7 +46,9 @@ class PlannerUxPresentationTest {
     @Test fun unknownEfficiencyDoesNotInventGainOrOverlap() {
         // Unknown readings remain explicit in sentence form.
         assertEquals("충전량은 아직 확인할 수 없어요. 끝나는 시각은 아직 계산할 수 없어요.",benefitLine(option(null),Energy(),now,null))
-        assertNull(option().rangeGain(energy,now.plusMinutes(3)))
+        // 전비는 30분 동안 쓴다(실차에서 2분 만에 낡아 '필요한 만큼 충전'이 늘 꺼져 있었다).
+        assertEquals(18,option().rangeGain(energy,now.plusMinutes(3)))
+        assertNull(option().rangeGain(energy,now.plusMinutes(31)))
         assertFalse(benefitLine(option(),energy,now,null).contains("동안"))
     }
     @Test fun elapsedSegmentsIncludeEveryStopWithoutCountingOverlapTwice() {

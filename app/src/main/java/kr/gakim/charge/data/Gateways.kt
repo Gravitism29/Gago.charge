@@ -30,6 +30,8 @@ interface VehicleGateway {
     suspend fun readBatterySoc(): BatteryReading
     suspend fun readRangeKm(): Measured<Double>? = null
     suspend fun readEfficiencyKmPerKwh(): Measured<Double>? = null
+    /** 배터리에 남은 에너지(kWh). 전비를 차량이 주지 않을 때 '주행 가능 거리 ÷ 잔여 에너지' 추정에 쓴다. */
+    suspend fun readBatteryEnergyKwh(): Measured<Double>? = null
 
     /** 주차 상태. 읽을 수 없으면 [ParkState.UNKNOWN] 이고, 이때는 사용자에게 직접 확인받는다. */
     suspend fun readParkState(): ParkState

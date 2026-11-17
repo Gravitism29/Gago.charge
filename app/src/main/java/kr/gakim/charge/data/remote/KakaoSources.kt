@@ -132,7 +132,7 @@ class WebKakaoDirections(
         if (!origin.validCoordinates || stops.isEmpty() || stops.any { !it.validCoordinates }) return RemoteResult.Unavailable("경로 좌표 미확인")
         fun point(p: Place) = "${p.longitude},${p.latitude}"
         val key = (listOf(origin) + stops).joinToString("|") { point(it) }
-        return session.load(key, 300) {
+        return session.load(key, ROUTE_CACHE_SECONDS) {
             val url = "https://apis-navi.kakaomobility.com/v1/directions?origin=${point(origin)}&destination=${point(stops.last())}" +
                 if (stops.size > 1) "&waypoints=${encode(stops.dropLast(1).joinToString("|") { point(it) })}" else ""
             KakaoParsers.directions(session.request(url, kakao = true), clock(), decoder).also {

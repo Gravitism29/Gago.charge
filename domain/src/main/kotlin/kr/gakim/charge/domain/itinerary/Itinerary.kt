@@ -29,9 +29,31 @@ data class ChargingSite(val availability: Availability, val parkingMinutes: Int 
                         val connectMinutes: Int = 2, val disconnectMinutes: Int = 1,
                         val waitMinutes: Measured<Int>? = null, val effectivePowerKw: Measured<Double>? = null,
                         val overlapVerified: Boolean = false, val evidence: Evidence,
-                        val note: String = "", val accessTimesKnown: Boolean = true)
+                        val note: String = "", val accessTimesKnown: Boolean = true,
+                        /** true: 볼일 보는 곳과 같은 주차장. false: 근처 충전기에 세워 두고 걸어서 다녀온다. null: 모름(시연 등). */
+                        val sameLot: Boolean? = null)
+/** [batteryCapacityKwh] 는 차량이 알려 준 값이 아니라 잔여 에너지 ÷ SOC 로 낸 추정치다(없으면 null). */
 data class Energy(val rangeKm: Measured<Double>? = null, val kmPerKwh: Measured<Double>? = null,
-                  val socPercent: Measured<Int>? = null)
+                  val socPercent: Measured<Int>? = null, val batteryCapacityKwh: Measured<Double>? = null)
+
+/** 전비는 빨리 변하지 않는다. 한 번 읽은 값을 30분 동안 쓴다(120초로 두면 실차에서 '필요한 만큼 충전'이 늘 꺼져 있었다). */
+const val EFFICIENCY_FRESH_SECONDS = 1800L
+/** 급속 충전기(이 출력 이상)는 한 시간 넘게 세워 두면 옮겨야 한다. 볼일이 길어도 충전은 60분까지만 센다. */
+const val FAST_CHARGER_KW = 40.0
+const val FAST_CHARGER_MAX_MINUTES = 60
+const val FAST_CHARGER_NOTE = "급속은 1시간 넘게 세워 두면 옮겨야 해요"
+const val TOP_UP_TARGET_SOC_PERCENT = 80
+
+/** 주행 가능 거리 ÷ 배터리 잔여 에너지. 3~9 km/kWh 밖이면 믿지 않는다. */
+fun estimateEfficiencyKmPerKwh(rangeKm: Double?, remainingKwh: Double?): Double? {
+    if (rangeKm == null || remainingKwh == null || !rangeKm.isFinite() || !remainingKwh.isFinite() || rangeKm <= 0 || remainingKwh <= 0) return null
+    return (rangeKm / remainingKwh).takeIf { it in 3.0..9.0 }
+}
+/** 잔여 에너지 ÷ SOC. SOC 가 너무 낮으면 오차가 커서 내지 않는다. 20~150 kWh 밖이면 버린다. */
+fun estimateBatteryCapacityKwh(remainingKwh: Double?, socPercent: Int?): Double? {
+    if (remainingKwh == null || socPercent == null || !remainingKwh.isFinite() || remainingKwh <= 0 || socPercent !in 10..100) return null
+    return (remainingKwh * 100.0 / socPercent).takeIf { it in 20.0..150.0 }
+}
 enum class EnergyStatus { OPTIONAL, NEED_CHARGE, CANNOT_REACH, UNKNOWN }
 data class EnergyDecision(val status: EnergyStatus, val missingKm: Double? = null, val note: String)
 data class VisitResult(val visit: Visit, val arrival: LocalDateTime?, val finish: LocalDateTime?, val slackMinutes: Long?)
@@ -101,12 +123,20 @@ fun evaluateItinerary(plan: Itinerary, legs: List<Leg>, mode: ChargeMode, charge
             if (!site.evidence.demo && site.note.isNotBlank()) conditions += site.note
             if (chargingStatus == Availability.UNKNOWN) conditions += "충전기 상태 미확인 · 현장 확인 필요"
             if (site.waitMinutes == null || !site.waitMinutes.evidence.fresh(now, 300)) conditions += "대기 시간 미확인 · 바로 충전할 경우의 조건부 예상"
-            val efficiency = energy.kmPerKwh?.takeIf { it.evidence.fresh(now) && it.value.isFinite() && it.value > 0 }?.value
+            val efficiency = energy.kmPerKwh?.takeIf { it.evidence.fresh(now, EFFICIENCY_FRESH_SECONDS) && it.value.isFinite() && it.value > 0 }?.value
             val power = site.effectivePowerKw?.takeIf { it.evidence.fresh(now, 300) && it.value.isFinite() && it.value > 0 }?.value
             if (mode == ChargeMode.TOP_UP) {
                 val chargeOnly = plan.visits[chargeIndex].activity == Activity.CHARGE
                 chargeMinutes = if (chargeOnly || site.overlapVerified) plan.visits[chargeIndex].stayMinutes else null
-                if (!chargeOnly && !site.overlapVerified) conditions += "볼일과 충전의 동시 진행 가능 여부 미확인"
+                if (!chargeOnly && !site.overlapVerified) {
+                    // 충전 시간을 모르면 끝나는 시각도 없다. 고를 수 있게 두면 시각 없는 선택이 확인 화면까지 갔다.
+                    conditions += "볼일과 충전의 동시 진행 가능 여부 미확인 · 볼일 중 보충은 고를 수 없어요"
+                    selectable = false
+                }
+                if (!chargeOnly && power != null && power >= FAST_CHARGER_KW && (chargeMinutes ?: 0) > FAST_CHARGER_MAX_MINUTES) {
+                    chargeMinutes = FAST_CHARGER_MAX_MINUTES
+                    conditions += FAST_CHARGER_NOTE
+                }
             } else if (decision.missingKm != null && efficiency != null && power != null) {
                 energyKwh = decision.missingKm / efficiency
                 chargeMinutes = ceil(energyKwh / power * 60.0).toInt()
@@ -117,6 +147,11 @@ fun evaluateItinerary(plan: Itinerary, legs: List<Leg>, mode: ChargeMode, charge
             } else conditions += "필요 충전량·충전 시간 산정 근거 부족"
             if (mode == ChargeMode.TOP_UP && efficiency != null && power != null && chargeMinutes != null) {
                 energyKwh = power * chargeMinutes / 60.0
+                // 배터리 용량(추정)과 SOC 를 알면 80%까지만 센다. 그 이상은 충전 속도가 크게 떨어진다.
+                val capacity = energy.batteryCapacityKwh?.takeIf { it.evidence.fresh(now, EFFICIENCY_FRESH_SECONDS) && it.value.isFinite() && it.value > 0 }?.value
+                val soc = energy.socPercent?.takeIf { it.evidence.fresh(now, 600) && it.value in 0..100 }?.value
+                if (capacity != null && soc != null)
+                    energyKwh = minOf(energyKwh, (capacity * (TOP_UP_TARGET_SOC_PERCENT - soc) / 100.0).coerceAtLeast(0.0))
                 val replenishedKm = energyKwh * efficiency
                 if (decision.missingKm != null && replenishedKm + 0.001 < decision.missingKm) {
                     conditions += "볼일 중 보충만으로는 이후 경로의 여유 거리 부족"

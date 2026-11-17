@@ -23,6 +23,7 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
     private var energyJob: Job? = null
     private var readJob: Job? = null
     private var calcJob: Job? = null
+    private var liveJob: Job? = null
     private var previewPlan: Pair<List<Visit>, java.time.LocalDateTime?>? = null
     private var applyJob: Job? = null
     private var speechJob: Job? = null
@@ -36,13 +37,16 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch { while(true) { delay(5_000); if(foreground) {
             controller.tick();controller.refreshPark()
             if(state.value.park==ParkState.MOVING) stopListening()
+            // 비교 화면을 오래 열어 두면 경로·충전기 근거가 낡는다. 다른 조회가 없을 때만 한 번 다시 읽는다.
+            if(calcJob?.isActive!=true && readJob?.isActive!=true && liveJob?.isActive!=true && applyJob?.isActive!=true && controller.liveRefreshDue())
+                liveJob=viewModelScope.launch { controller.refreshLive() }
         } } }
     }
     private fun observeEnergy() { energyJob?.cancel(); energyJob = viewModelScope.launch { controller.observeEnergy() } }
     private fun preview() {
         val signature = state.value.plan.visits to state.value.plan.departure
         if (calcJob?.isActive == true && previewPlan == signature) return
-        calcJob?.cancel()
+        calcJob?.cancel(); liveJob?.cancel()
         previewPlan = signature
         calcJob = viewModelScope.launch { controller.previewRoutes() }
     }
@@ -61,13 +65,20 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
     }
     fun useFakes(enabled: Boolean) {
         if (state.value.busy || enabled == gateways.usingFakes) return
-        stopListening(); readJob?.cancel(); calcJob?.cancel(); energyJob?.cancel(); gateways.release()
+        stopListening(); readJob?.cancel(); calcJob?.cancel(); liveJob?.cancel(); energyJob?.cancel(); gateways.release()
         gateways = GatewayFactory.create(getApplication(), enabled)
         controller.replaceGateways(gateways); observeEnergy(); refresh()
     }
     override fun toggleListening() {
         if (state.value.busy || state.value.park == ParkState.MOVING) return
-        if(speechJob?.isActive == true) { stopListening(); return }
+        if(speechJob?.isActive == true) {
+            // 말하는 도중 마이크를 눌러 끝내면, 들은 중간 문장을 버리지 않고 확정 문장처럼 처리한다.
+            val heard=state.value.stopTranscript()
+            val source=gateways
+            stopListening()
+            heard?.let { handleFinal(it,source,if(source.usingFakes) "모의 SpeechGateway" else "공식 SpeechToText · 눌러서 마침") }
+            return
+        }
         gateways.speechOutput.stop()
         val token = ++speechGeneration
         val source = gateways
@@ -79,13 +90,7 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
                     if (token == speechGeneration) {
                         if (event is SpeechEvent.Final) {
                             finalReceived=true
-                            val speechSource=if(source.usingFakes) "모의 SpeechGateway" else "공식 SpeechToText · 확정"
-                            val command=controller.handleVoiceCommand(event.text,speechSource)
-                            if(command==PlannerVoiceCommand.Confirm) startGuidance()
-                            else if(command==null && state.value.screen==2) controller.ignoreOnConfirm(event.text,speechSource)
-                            else if(command==null) { controller.onSpeech(event,speechSource);preview() }
-                            // 들은 내용을 되읽고 다음 물음으로 끝낸다. 안내 시작을 말한 뒤에는 다시 묻지 않는다.
-                            if(state.value.tts && command!=PlannerVoiceCommand.Confirm) state.value.spokenPrompt().takeIf { it.isNotBlank() }?.let { source.speechOutput.speak(it) }
+                            handleFinal(event.text,source,if(source.usingFakes) "모의 SpeechGateway" else "공식 SpeechToText · 확정")
                             speechGeneration++
                         } else controller.onSpeech(event, if(source.usingFakes) "모의 SpeechGateway" else "공식 SpeechToText")
                     }
@@ -97,13 +102,22 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
             finally { if(token == speechGeneration) controller.speechStopped() }
         }
     }
+    /** 확정 문장 한 가지 처리 경로(음성 인식의 확정 결과와 눌러서 마친 중간 문장이 같이 쓴다). */
+    private fun handleFinal(text:String,source:GatewaySet,speechSource:String) {
+        val command=controller.handleVoiceCommand(text,speechSource)
+        if(command==PlannerVoiceCommand.Confirm) startGuidance()
+        else if(command==null && state.value.screen==2) controller.ignoreOnConfirm(text,speechSource)
+        else if(command==null) { controller.onSpeech(SpeechEvent.Final(text),speechSource);preview() }
+        // 들은 내용을 되읽고 다음 물음으로 끝낸다. 안내 시작을 말한 뒤에는 다시 묻지 않는다.
+        if(state.value.tts && command!=PlannerVoiceCommand.Confirm) state.value.spokenPrompt().takeIf { it.isNotBlank() }?.let { source.speechOutput.speak(it) }
+    }
     override fun stopListening() { speechGeneration++; speechJob?.cancel(); speechJob = null; controller.speechStopped() }
     override fun startGuidance() {
         if(controller.prepareGuidance()) confirm()
     }
     fun confirm() {
         if (applyJob?.isActive == true) return
-        stopListening(); calcJob?.cancel(); readJob?.cancel()
+        stopListening(); calcJob?.cancel(); liveJob?.cancel(); readJob?.cancel()
         applyJob = viewModelScope.launch { controller.confirm() }
     }
     override fun back() { if(!state.value.busy) { stopListening(); controller.back() } }
@@ -128,7 +142,7 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
     fun onStop() {
         foreground=false;parkJob?.cancel()
         stopListening(); gateways.speechOutput.stop()
-        if(!state.value.ownHandoff) { readJob?.cancel(); calcJob?.cancel(); applyJob?.cancel(); controller.stop() }
+        if(!state.value.ownHandoff) { readJob?.cancel(); calcJob?.cancel(); liveJob?.cancel(); applyJob?.cancel(); controller.stop() }
     }
     fun consumeReturnToFront() = controller.consumeReturnToFront()
     fun debugTranscript(text: String) {
@@ -148,7 +162,7 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
             "fail" -> { controller.simulateApplyFailure = true }
         }
     }
-    override fun onCleared() { energyJob?.cancel(); stopListening(); readJob?.cancel(); calcJob?.cancel(); applyJob?.cancel();parkJob?.cancel(); gateways.release() }
+    override fun onCleared() { energyJob?.cancel(); stopListening(); readJob?.cancel(); calcJob?.cancel(); liveJob?.cancel(); applyJob?.cancel();parkJob?.cancel(); gateways.release() }
 }
 
 private class PreferencesRouteJournal(app: Application) : RouteJournal {

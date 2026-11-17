@@ -10,6 +10,15 @@ import kotlinx.coroutines.sync.withPermit
 import kr.gakim.charge.demo.ItineraryRepository
 import kr.gakim.charge.domain.itinerary.*
 
+/**
+ * 비교 화면을 열어 둔 동안 경로·충전기를 다시 읽는 주기와, 그때 실제로 새 값을 받도록 캐시를 짧게 둔 값.
+ * 경로 근거는 300초, 충전기 근거는 600초 뒤 낡는다. 240초마다 다시 읽으면 경로 캐시(180초)는 매번, 충전기 캐시(420초)는
+ * 두 번에 한 번 새로 받아, 화면의 근거가 낡기 전에 바뀐다.
+ */
+const val LIVE_REFRESH_SECONDS = 240L
+const val ROUTE_CACHE_SECONDS = 180L
+const val CHARGER_CACHE_SECONDS = 420L
+
 class CompositeItineraryRepository(
     private val places: KakaoPlaceSearch, private val directions: KakaoDirections, private val chargers: KecoChargers,
     override val closingCalendar: MartClosingCalendar = MartClosingCalendar(),
@@ -96,7 +105,16 @@ class CompositeItineraryRepository(
         refreshRemote(plan, position, now, { true }, {})
 
     override suspend fun refreshRemote(plan: Itinerary, position: Place?, now: LocalDateTime,
-        isCurrent: () -> Boolean, onUpdate: () -> Unit, searchBudgetMillis: Long) = coroutineScope {
+        isCurrent: () -> Boolean, onUpdate: () -> Unit, searchBudgetMillis: Long) =
+        refresh(plan, position, now, isCurrent, onUpdate, searchBudgetMillis, live = false)
+
+    /** 경로(300초)·충전기(600초) 근거가 낡기 전에 다시 읽는다. 장소 후보는 다시 찾지 않고, 새 값이 올 때까지 이전 값을 둔다. */
+    override suspend fun refreshLive(plan: Itinerary, position: Place?, now: LocalDateTime,
+        isCurrent: () -> Boolean, onUpdate: () -> Unit) =
+        refresh(plan, position, now, isCurrent, onUpdate, 8_000, live = true)
+
+    private suspend fun refresh(plan: Itinerary, position: Place?, now: LocalDateTime,
+        isCurrent: () -> Boolean, onUpdate: () -> Unit, searchBudgetMillis: Long, live: Boolean) = coroutineScope {
         val nextStatuses = linkedMapOf<String, SourceStatus>()
         listOf(places.status, directions.status, chargers.status).forEach { nextStatuses[it.source] = it }
         fun status(source: SourceStatus, result: RemoteResult<*>, detail: String = "조회 성공") {
@@ -106,8 +124,8 @@ class CompositeItineraryRepository(
             }
         }
         var nextPlaces = remotePlaces
-        val nextLegs = mutableMapOf<Pair<String?, String>, Leg>()
-        val nextSites = mutableMapOf<String, ChargingSite?>()
+        val nextLegs = if (live) legs.toMutableMap() else mutableMapOf()
+        val nextSites = if (live) sites.toMutableMap() else mutableMapOf()
         fun publish() {
             if (!isCurrent()) return
             remotePlaces = nextPlaces
@@ -116,9 +134,9 @@ class CompositeItineraryRepository(
             statuses = nextStatuses.values.toList()
             onUpdate()
         }
-        if (places.enabled && position != null && exampleDestination == null)
+        if (!live && places.enabled && position != null && exampleDestination == null)
             exampleDestination = withTimeoutOrNull(searchBudgetMillis) { places.nearestStationName(position) }
-        val open = plan.visits.firstOrNull { it.place == null && nearbySearchable(it.activity) &&
+        val open = if (live) null else plan.visits.firstOrNull { it.place == null && nearbySearchable(it.activity) &&
                 (it.spokenPlace.isBlank() || isGenericPlace(it.spokenPlace)) }
         if (open != null) {
             remoteActivity = open.activity

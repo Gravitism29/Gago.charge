@@ -92,7 +92,9 @@ object KecoParser {
             if (charger.limited == "Y") "이용 제한 있음" else "",
             "주차·연결 약 ${6 + walk}분${estimatedKw?.let { "과 충전 속도 ${it.toInt()} kW" }.orEmpty()}는 추정 · 대기 시간 미확인",
         ).filter { it.isNotBlank() }.joinToString(" · ")
-        return ChargingSite(availability, walkingMinutes = walk, overlapVerified = true,
+        // 같은 주차장이면 볼일 보는 동안 충전한다. 300 m 안의 근처 충전기는 세워 두고 걸어서 다녀오며, 도보 왕복은 walk 로 체류에 들어간다.
+        // 이용 제한(limitYn=Y, 입주민·고객 전용 등)은 세워 둘 수 있다고 볼 근거가 없어 동시 진행으로 세지 않는다.
+        return ChargingSite(availability, walkingMinutes = walk, overlapVerified = charger.limited != "Y", sameLot = same,
             effectivePowerKw = estimatedKw?.let { Measured(it, Evidence("충전 속도 추정(명목 출력 기준, 상한 50 kW)", now)) },
             evidence = Evidence("한국환경공단 · 마지막 상태 변경 ${charger.updatedAt?.format(changeLabel) ?: "미확인"} · 조회", if (fresh || charger.updatedAt == null) fetchedAt else charger.updatedAt),
             note = note, accessTimesKnown = true)
@@ -113,13 +115,13 @@ class WebKecoChargers(
             detail = SourceStatus(session.name, clock(), "지역 코드 미확인")
             return RemoteResult.Unavailable("지역 코드 미확인")
         }
-        val result = session.load(district, 600) {
+        val result = session.load(district, CHARGER_CACHE_SECONDS) {
             // 구가 있는 일반시(성남·수원·고양 등)는 KECO 가 구 코드(41131)가 아니라 시 코드(41130)로만 응답한다(2026-11-16 실호출 확인).
             pages("zcode=${district.take(2)}&zscode=$district").ifEmpty {
                 val city = district.take(4) + "0"
                 // 같은 시의 다른 구에서 다시 묻더라도 시 목록(수 MB)은 한 번만 내려받는다.
                 if (city == district) emptyList()
-                else (session.load("city:$city", 600) { pages("zcode=${district.take(2)}&zscode=$city") } as? RemoteResult.Available)?.value
+                else (session.load("city:$city", CHARGER_CACHE_SECONDS) { pages("zcode=${district.take(2)}&zscode=$city") } as? RemoteResult.Available)?.value
                     ?: throw SourceFailure("충전소 목록 조회 실패")
             }
         }

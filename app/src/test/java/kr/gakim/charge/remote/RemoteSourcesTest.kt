@@ -114,6 +114,16 @@ class RemoteSourcesTest {
         assertTrue(site.walkingMinutes >= 4)
         assertTrue(site.accessTimesKnown)
     }
+    @Test fun sameLotIsCarriedAndLimitedChargerIsNotOverlap() {
+        val near = KecoParser.site(origin, listOf(charger().copy(latitude = origin.latitude + 0.001, name = "공영 주차장", address = "다른 주소")), at)!!
+        assertEquals(false, near.sameLot)
+        assertTrue("근처 충전기도 세워 두고 걸어서 다녀오는 동안 충전한다", near.overlapVerified)
+        val same = KecoParser.site(origin, listOf(charger()), at)!!
+        assertEquals(true, same.sameLot)
+        assertTrue(same.overlapVerified)
+        val limited = KecoParser.site(origin, listOf(charger().copy(limited = "Y")), at)!!
+        assertFalse("이용 제한 충전기는 볼일 중 충전으로 세지 않는다", limited.overlapVerified)
+    }
     @Test fun outsideRadiusAndDeletedChargersAreExcluded() {
         assertNull(KecoParser.site(origin, listOf(charger().copy(latitude = 38.0)), at))
         assertNull(KecoParser.site(origin, listOf(charger().copy(deleted = true)), at))

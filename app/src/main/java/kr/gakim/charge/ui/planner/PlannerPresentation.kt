@@ -286,7 +286,7 @@ internal fun powerLabel(kw: Double): String = "${if (kw % 1.0 == 0.0) kw.toInt()
     when { kw<=11 -> "완속"; kw>=40 -> "급속"; else -> "중속" }
 
 internal fun Option.rangeGain(energy: Energy, now: LocalDateTime): Int? {
-    val efficiency=energy.kmPerKwh?.takeIf { it.evidence.fresh(now) && it.value.isFinite() && it.value>0 }?.value ?: return null
+    val efficiency=energy.kmPerKwh?.takeIf { it.evidence.fresh(now,EFFICIENCY_FRESH_SECONDS) && it.value.isFinite() && it.value>0 }?.value ?: return null
     return energyKwh?.takeIf { it.isFinite() && it>=0 }?.let { kotlin.math.round(it*efficiency).toInt() }
 }
 /** 차량 전비를 모를 때의 어림값. 충전 속도(추정) × 시간 × 5 km/kWh, 5km 단위로 내림. */
@@ -320,7 +320,8 @@ internal fun benefitLine(option: Option, energy: Energy, now: LocalDateTime, sit
     val activity=when(option.visits.firstOrNull { it.id==option.chargeVisitId }?.activity) {
         Activity.SHOP -> "장 보는 동안"; Activity.MEAL -> "식사하는 동안"; Activity.HOSPITAL -> "진료받는 동안"; else -> "볼일 보는 동안"
     }
-    val prefix=if(site?.overlapVerified==true) "$activity " else ""
+    // 같은 주차장이 아니면 볼일 '하는 동안'이 아니라 충전기에 세워 두고 걸어서 다녀오는 동안이다(도보 왕복은 체류 시간에 들어 있다).
+    val prefix=when { site?.overlapVerified!=true -> "";site.sameLot==false -> "충전기에 세워 두고 걸어서 다녀오는 동안 ";else -> "$activity " }
     val lead=gain?.let { "${prefix}약 +${it}km(추정) 충전돼요." } ?: "충전량은 아직 확인할 수 없어요."
     return (if(soc!=null && soc>=80) "지금도 충분하지만, " else "") + "$lead $timing"
 }
@@ -367,6 +368,103 @@ internal fun chargeControlLine(option:Option?): String = when {
     option.results.lastOrNull()?.finish==null -> "시간 계산 불가"
     else -> "${clock(option.results.last().finish)}에 끝" + (option.extraMinutes?.takeIf { it>0 }?.let { " · +${it}분" } ?: "")
 }
+/** 충전기 정보가 없을 때 따로 들르는 정차의 주차·연결·분리 어림(ChargingSite 기본값 3+2+2+1). */
+internal const val SEPARATE_STOP_OVERHEAD_MINUTES = 8
+
+/**
+ * 같은 양을 충전하러 충전소에 따로 들르면 드는 시간(추정): 실제 충전 분 + 주차·연결·분리.
+ * 우회 이동은 알 수 없어 넣지 않는다(그만큼 보수적인 값). 볼일과 겹치는 '들른 김에 충전'에서만 낸다.
+ */
+internal fun separateStopMinutes(option: Option, site: ChargingSite?): Int? {
+    if (option.mode != ChargeMode.TOP_UP || !option.selectable || !option.chargeOverlapsVisit()) return null
+    var charge = option.chargeMinutes?.takeIf { it > 0 } ?: return null
+    // 80% 상한으로 충전량이 줄었다면, 따로 들러도 그만큼만 충전하면 된다.
+    val kw = site?.effectivePowerKw?.value?.takeIf { it.isFinite() && it > 0 }
+    val kwh = option.energyKwh?.takeIf { it.isFinite() && it >= 0 }
+    if (kw != null && kwh != null) charge = minOf(charge, kotlin.math.ceil(kwh / kw * 60.0).toInt())
+    if (charge <= 0) return null
+    val overhead = site?.let { it.parkingMinutes + it.walkingMinutes + it.connectMinutes + it.disconnectMinutes } ?: SEPARATE_STOP_OVERHEAD_MINUTES
+    return charge + overhead
+}
+
+/** 따로 충전하러 가는 것보다 아끼는 분(추정). 5분 미만이면 말하지 않는다. */
+internal fun savedMinutes(option: Option, site: ChargingSite?): Long? {
+    val separate = separateStopMinutes(option, site) ?: return null
+    val extra = option.extraMinutes ?: return null
+    return (separate - extra).takeIf { it >= 5 }
+}
+
+internal fun savedTimeLine(option: Option, site: ChargingSite?): String? {
+    val saved = savedMinutes(option, site) ?: return null
+    return "따로 충전하면 +${separateStopMinutes(option, site)}분 → ${saved}분 아껴요(추정)"
+}
+
+/** 충전 전→후 배터리(추정). 용량 추정·SOC 가 모두 새 값일 때만. 들른 김에 충전은 80%, 필요한 만큼은 100%에서 멈춘다. */
+internal fun socChangeLine(option: Option, energy: Energy, now: LocalDateTime): String? {
+    if (option.mode == ChargeMode.NONE) return null
+    val capacity = energy.batteryCapacityKwh?.takeIf { it.evidence.fresh(now, EFFICIENCY_FRESH_SECONDS) && it.value.isFinite() && it.value > 0 }?.value ?: return null
+    val soc = energy.socPercent?.takeIf { it.evidence.fresh(now, 600) && it.value in 0..100 }?.value ?: return null
+    val kwh = option.energyKwh?.takeIf { it.isFinite() && it > 0 } ?: return null
+    val cap = if (option.mode == ChargeMode.TOP_UP) maxOf(soc, TOP_UP_TARGET_SOC_PERCENT) else 100
+    val after = kotlin.math.round(soc + kwh / capacity * 100.0).toInt().coerceAtMost(cap)
+    return if (after - soc >= 1) "$soc% → 약 $after%(추정)" else null
+}
+
+/** '필요한 만큼 충전'이 지금 필요 없으면 버튼을 숨긴다(꺼진 버튼이 세 번째 선택처럼 보였다). */
+internal fun visibleChargeModes(requiredTarget: Option?): List<ChargeMode> =
+    if (requiredTarget?.mode == ChargeMode.REQUIRED && requiredTarget.energy.status == EnergyStatus.OPTIONAL) listOf(ChargeMode.NONE, ChargeMode.TOP_UP)
+    else listOf(ChargeMode.NONE, ChargeMode.TOP_UP, ChargeMode.REQUIRED)
+
+/** 카드 아래 한 줄. [risk] 면 주황, 아니면 추정 안내라 흐린 글씨. */
+internal data class WarningSummary(val text: String, val risk: Boolean)
+
+/** 실제로 일정이 틀어질 수 있는 것만 센다: 휴무, 쓸 수 없는 충전기, 늦거나 촉박한 도착, 급속 1시간 이동, 갈 수 없는 선택. */
+internal fun Option.riskWarnings(): List<String> = buildList {
+    closingNotices.forEach { add(it.label) }
+    if (mode != ChargeMode.NONE && chargingStatus in listOf(Availability.INCOMPATIBLE, Availability.UNAVAILABLE)) add("사용할 수 없는 충전기")
+    val slack = critical?.takeIf { it.visit.deadline != null }?.slackMinutes
+    if (slack != null && slack < 5) add(if (slack < 0) "마감에 늦어요" else "마감이 촉박해요")
+    if (FAST_CHARGER_NOTE in conditions) add(FAST_CHARGER_NOTE)
+    if (!selectable && isEmpty()) add("이 방식으로는 갈 수 없어요")
+}.distinct()
+
+internal fun Option.warningSummary(): WarningSummary? {
+    val risks = riskWarnings()
+    if (risks.isNotEmpty()) return WarningSummary("확인할 내용 ${risks.size}가지", true)
+    return if (reviewWarnings().isNotEmpty()) WarningSummary("추정값 포함", false) else null
+}
+
+/** 처리 중 안내. 말하는 중이 아니고 장소·차량 정보를 읽는 동안만. */
+internal fun PlannerState.processingLine(): String? = if (!listening && (searchingPlaces || loading)) "일정에 맞는 곳을 찾는 중…" else null
+
+/** 마이크를 눌러 끝냈을 때 들은 중간 문장(있으면 확정 문장처럼 처리한다). */
+internal fun PlannerState.stopTranscript(): String? = partial.trim().takeIf { listening && it.isNotEmpty() }
+
+/** 확인 화면에서 명령이 아닌 말을 들었을 때의 안내. 경고가 아니라 안내 색으로 보인다. */
+internal const val confirmIgnoredSuffix = " — 일정은 그대로예요. ‘안내 시작’ 또는 ‘다른 곳으로’라고 말해 주세요."
+internal fun isInfoApplyMessage(message: String): Boolean = message.endsWith(confirmIgnoredSuffix)
+
+/** 비교 화면에서 본 끝 시각보다 늦어졌으면(지금 출발 기준이라 시계가 흘렀으면) 한 줄로 알린다. */
+internal fun PlannerState.departureShiftLine(): String? {
+    if (plan.departure != null) return null
+    val shown = shownFinish ?: return null
+    val finish = selected?.results?.lastOrNull()?.finish ?: return null
+    val minutes = Duration.between(shown, finish).toMinutes()
+    return if (minutes > 0) "출발이 ${minutes}분 늦어져 ${clock(finish)}에 끝나요" else null
+}
+
+/** 출처 목록의 '오래된 정보' 기준. 전비·배터리 용량 추정은 30분, 나머지는 10분. */
+internal fun evidenceStale(e: Evidence, energy: Energy, now: LocalDateTime): Boolean {
+    val window = if (e == energy.kmPerKwh?.evidence || e == energy.batteryCapacityKwh?.evidence) EFFICIENCY_FRESH_SECONDS else 600L
+    return !e.fresh(now, window)
+}
+
+/** 막대 아래 세 라벨. 볼일과 겹쳐 충전하면 볼일 구간에 '동안 충전'을 붙인다. */
+internal fun Option.timelineSegmentLabels(segments: List<Long>): List<String> {
+    val chargingDuringErrand = mode != ChargeMode.NONE && chargeOverlapsVisit()
+    return listOf("이동 ${segments[0]}분", "${activityLabel()} ${segments[1]}분" + if (chargingDuringErrand) " 동안 충전" else "", "${extraStopLabel()} ${segments[2]}분")
+}
+
 internal fun Option.statusChips(site: ChargingSite?, demo: Boolean): List<String> {
     val status=when(chargingStatus) { Availability.AVAILABLE -> "사용 가능";Availability.CHARGING -> "사용 중";Availability.INCOMPATIBLE -> "차량과 맞지 않음";Availability.UNAVAILABLE -> "사용 불가";else -> "상태 확인 필요" }
     if(mode==ChargeMode.NONE) return if(demo) listOf("시연 값") else emptyList()

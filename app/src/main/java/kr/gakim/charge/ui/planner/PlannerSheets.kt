@@ -248,7 +248,7 @@ private fun SourcesSheet(s:PlannerState,option:Option?,vm:PlannerViewModel,close
             s.sourceStatuses.forEach { Text(sourceLabel("${it.source} · ${it.at?.let { time -> at(time,s.now) } ?: "미조회"} · ${it.status}"),style=GakimType.Caption) }
             Text("차량 내비 · ${s.routeReadAt?.let { at(it,s.now) } ?: "미조회"}",style=GakimType.Caption)
             places.forEach { Text(sourceLabel("${it.name} · ${if(it.demo) "시연 값" else it.source}"),style=GakimType.Caption) }
-            evidence.distinct().forEach { e -> Text(sourceLabel("${e.source} · ${if(e.demo) "시연 값 · " else ""}${at(e.observedAt,s.now)}${if(!e.fresh(s.now,600)) " · 오래된 정보" else ""}"),style=GakimType.Caption) }
+            evidence.distinct().forEach { e -> Text(sourceLabel("${e.source} · ${if(e.demo) "시연 값 · " else ""}${at(e.observedAt,s.now)}${if(evidenceStale(e,s.energy,s.now)) " · 오래된 정보" else ""}"),style=GakimType.Caption) }
             option?.closingNotices?.forEach { Text(sourceLabel(it.source),style=GakimType.Caption) }
             option?.chargingNote?.takeIf { it.isNotBlank() }?.let { Text(sourceLabel(it),style=GakimType.Caption) }
         }

@@ -60,7 +60,9 @@ internal fun PlannerToday(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
                     if(s.plan.visits.size<=2) SurfaceCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                             Text("지금 차량 · 배터리 ${s.energy.socPercent?.value?.let { "$it%" } ?: "미확인"} · 주행 가능 ${s.energy.usableRange(s.now)?.value?.toInt()?.let { "${it}km" } ?: "미확인"}",style=GakimType.CaptionBold)
-                            Text("볼일을 말하면, 충전해도 늦지 않는 곳을 찾아 드려요",style=GakimType.Caption)
+                            // 2026-11-18 심사 지적: 가치가 회색 안내문 한 줄뿐이었다.
+                            Text("충전소에 따로 들르지 마세요.",style=GakimType.Title)
+                            Text("장 보고 밥 먹는 동안 충전되는 곳을 찾아 드려요.",style=GakimType.BodyBold)
                         }
                     }
                 } else {
@@ -70,6 +72,7 @@ internal fun PlannerToday(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
             if(visit==null) Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 MicOrb(s.listening,s.level,{if(enabled) vm.toggleListening()},Modifier.height(238.dp).semantics { contentDescription="음성 입력 마이크" },orbSize=200.dp,dimmed=!enabled)
                 Text(if(s.listening) "듣고 있어요 · 눌러서 마치기" else "눌러서 말하기",style=GakimType.BodyBold,color=GakimColors.Voice)
+                s.processingLine()?.let { Text(it,style=GakimType.Caption,color=GakimColors.Voice) }
                 plannerExamples(s.now,s.remotePlacesEnabled,s.nearbyRealMarts,s.exampleDestination).forEach { sentence ->
                     Box(Modifier.fillMaxWidth().heightIn(min=76.dp).clip(CardShape).background(GakimColors.Surface).clickable(enabled,role=Role.Button) {
                         vm.edit { c.onSpeech(SpeechEvent.Final(sentence),"예시 문장") }

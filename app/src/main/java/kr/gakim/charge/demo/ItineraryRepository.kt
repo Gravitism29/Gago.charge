@@ -22,6 +22,11 @@ open class ItineraryRepository {
         refreshRemote(plan, position, now)
         if (isCurrent()) onUpdate()
     }
+    /** 비교 화면을 오래 열어 둘 때: 장소 후보는 그대로 두고 경로·충전기만 다시 읽는다(후보가 비었다 차는 깜빡임 없이). */
+    open suspend fun refreshLive(plan: Itinerary, position: Place?, now: LocalDateTime,
+        isCurrent: () -> Boolean, onUpdate: () -> Unit) {
+        if (isCurrent()) onUpdate()
+    }
     private fun place(id: String, name: String, lat: Double, lon: Double) = Place(id, name, lat, lon, "시연 좌표 · 실제 점포 아님", demo = true, source = "시연 장소 목록")
     val catalog = listOf(
         CatalogEntry(place("mart-e", "은평점", 37.635, 126.918), setOf(Activity.SHOP), listOf("은평점", "은평마트")),

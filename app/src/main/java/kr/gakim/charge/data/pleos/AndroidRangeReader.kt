@@ -56,4 +56,22 @@ object AndroidRangeReader {
         } catch (e: LinkageError) { null }
         finally { car?.disconnect() }
     }
+
+    /** Public Android EV_BATTERY_LEVEL(Wh, android.car.permission.CAR_ENERGY) → kWh. 전비 추정에만 쓴다. */
+    @SuppressLint("MissingPermission")
+    suspend fun readBatteryKwh(context: Context): Measured<Double>? = withContext(Dispatchers.IO) {
+        var car: Car? = null
+        try {
+            car = Car.createCar(context)
+            val manager = car?.getCarManager(Car.PROPERTY_SERVICE) as? CarPropertyManager ?: return@withContext null
+            val value = manager.getProperty(Float::class.javaObjectType, VehiclePropertyIds.EV_BATTERY_LEVEL, 0)
+            val wh = value?.value?.toDouble() ?: return@withContext null
+            if (value.status != CarPropertyValue.STATUS_AVAILABLE || !wh.isFinite() || wh <= 0) return@withContext null
+            Measured(wh / 1000.0, Evidence("Android EV_BATTERY_LEVEL", LocalDateTime.now()))
+        } catch (e: Exception) {
+            Log.w("GakimRange", "EV_BATTERY_LEVEL unavailable: ${e.javaClass.simpleName}: ${e.message}")
+            null
+        } catch (e: LinkageError) { null }
+        finally { car?.disconnect() }
+    }
 }

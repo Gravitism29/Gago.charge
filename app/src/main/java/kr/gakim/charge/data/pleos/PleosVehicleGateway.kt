@@ -106,6 +106,8 @@ class PleosVehicleGateway(context: Context) : VehicleGateway {
         }
     }
 
+    override suspend fun readBatteryEnergyKwh() = AndroidRangeReader.readBatteryKwh(appContext)
+
     private val vehicle: Vehicle? = try {
         Vehicle(context.applicationContext).also { it.initialize() }
     } catch (t: Throwable) {

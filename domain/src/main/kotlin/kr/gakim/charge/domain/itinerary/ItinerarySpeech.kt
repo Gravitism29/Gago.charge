@@ -27,36 +27,86 @@ private val yesWords = setOf("응", "네", "예", "그래", "좋아")
 fun plannerVoiceCommand(text: String, screen: Int): PlannerVoiceCommand? {
     // "좋아요"·"들를게요"처럼 끝의 '요'만 다른 말은 같은 명령이다.
     val words = text.trim().trimEnd('.', '!', '?').replace(Regex("\\s+"), "").let { if (it.length > 1) it.removeSuffix("요") else it }
+    // "네?"처럼 되묻는 말은 동의가 아니다.
+    val asking = text.trim().trimEnd('.', '!', '~', ' ').endsWith("?")
     if (screen == 0) return when (words) {
         // 화면이 "이 일정으로 비교할까요?"라고 묻는다. 그 물음에 대한 대답만 받는다.
-        in yesWords, "비교", "비교해", "비교해줘", "비교하자", "찾아줘", "찾아봐", "그렇게해", "그렇게해줘" -> PlannerVoiceCommand.Compare
+        in yesWords, "비교", "비교해", "비교해줘", "비교하자", "비교해봐", "찾아줘", "찾아봐", "보여줘", "보여봐", "그렇게해", "그렇게해줘" ->
+            PlannerVoiceCommand.Compare.takeUnless { asking }
         else -> null
     }
     if (screen == 2) return when (words) {
         "들를게", "들르자", "경유", "경유할게", "추가", "추가해줘", "거기도", "거기도가자" -> PlannerVoiceCommand.KeepDestination
         "빼고", "빼고갈게", "그것만", "거기만", "거기만가자" -> PlannerVoiceCommand.ReplaceDestination
-        in yesWords, "안내시작", "안내시작해", "안내시작해줘", "안내해", "안내해줘", "가자", "그래가자", "응가자", "출발", "출발해", "출발하자", "이경로로안내" -> PlannerVoiceCommand.Confirm
+        in yesWords, "안내시작", "안내시작해", "안내시작해줘", "안내해", "안내해줘", "가자", "그래가자", "응가자", "출발", "출발해", "출발하자", "이경로로안내" ->
+            PlannerVoiceCommand.Confirm.takeUnless { asking }
         "아니", "뒤로", "취소", "다른곳", "다른데", "다른곳으로", "다른곳보여줘" -> PlannerVoiceCommand.Back
         else -> null
     }
     if (screen != 1) return null
     return when (words) {
-        in yesWords, "이걸로", "그걸로", "여기로", "이걸로가자", "그걸로가자", "여기로가자", "이걸로갈게", "여기로갈게" -> PlannerVoiceCommand.Proceed()
+        in yesWords, "이걸로", "그걸로", "여기로", "이걸로가자", "그걸로가자", "여기로가자", "이걸로갈게", "그걸로갈게", "여기로갈게",
+        "이걸로할게", "그걸로할게", "여기로할게", "이걸로해", "그걸로해", "이걸로해줘", "그걸로해줘", "네그걸로", "네이걸로", "응그걸로", "응이걸로",
+        "출발", "출발해", "출발하자", "안내시작", "안내시작해", "안내시작해줘", "안내해", "안내해줘" ->
+            PlannerVoiceCommand.Proceed().takeUnless { asking }
         "충전하고", "충전하고갈게", "충전하고갈래", "충전할게", "충전할래" -> PlannerVoiceCommand.Charge(ChargeMode.TOP_UP)
         "충전안해", "충전안할게", "충전안할래", "충전없이갈게", "충전없이" -> PlannerVoiceCommand.Charge(ChargeMode.NONE)
         "충분히충전", "충분히충전하고갈게", "필요한만큼충전" -> PlannerVoiceCommand.Charge(ChargeMode.REQUIRED)
-        "다른곳", "다른데", "다음", "다른곳보여줘", "다른곳으로" -> PlannerVoiceCommand.OtherPlaces
-        "뒤로", "일정수정", "처음으로" -> PlannerVoiceCommand.Back
+        "다른곳", "다른데", "다른거", "딴데", "딴곳", "딴거", "다음", "다른곳보여줘", "다른거보여줘", "다른곳으로" -> PlannerVoiceCommand.OtherPlaces
+        "뒤로", "이전", "이전으로", "일정수정", "처음으로" -> PlannerVoiceCommand.Back
         "추천", "추천대로", "추천으로", "추천한곳", "추천한곳으로" -> PlannerVoiceCommand.PickRecommended
         else -> Regex("^(첫번째|1번|일번|왼쪽|두번째|2번|이번|오른쪽)(?:걸로|거|으로|로)?$").matchEntire(words)?.groupValues?.get(1)
             ?.let { PlannerVoiceCommand.Pick(if (it in setOf("첫번째", "1번", "일번", "왼쪽")) 0 else 1) }
-            ?: Regex("^(.+?)(?:으로|로)(?:가자|갈게|갈래|가줘)?$").matchEntire(words)?.groupValues?.get(1)
-                ?.takeUnless { it.contains("충전") || it.startsWith("아니") || it.length < 2 }
+            ?: Regex("^(.+?)(?:으로|로)(?:가자|갈게|갈래|가줘|할게|해줘|해)?$").matchEntire(words)?.groupValues?.get(1)
+                // "40분으로"·"세 시로"는 장소가 아니라 일정 수정이다.
+                ?.takeUnless { it.contains("충전") || it.startsWith("아니") || it.length < 2 || it.contains(Regex("\\d")) ||
+                    spokenDurations(it).isNotEmpty() || KoreanTimeParser.mentions(it).isNotEmpty() }
                 ?.let { PlannerVoiceCommand.Proceed(it) }
     }
 }
 
+/** 말한 길이 하나. [anchor]는 정정("30분, 아니 40분")하기 전 처음 말한 자리로, 가까운 방문을 찾는 데 쓴다. */
+data class SpokenDuration(val range: IntRange, val minutes: Int, val anchor: IntRange = range)
+
+private val nativeHourCounts = mapOf("열한" to 11, "열두" to 12, "열" to 10, "아홉" to 9, "여덟" to 8, "일곱" to 7,
+    "여섯" to 6, "다섯" to 5, "네" to 4, "세" to 3, "두" to 2, "한" to 1)
+private const val SINO = "[일이삼사오육칠팔구십]{1,3}"
+private fun countOf(token: String): Int? = token.toIntOrNull() ?: KoreanTimeParser.sinoNumber(token)
+
+/**
+ * "30분", "삼십 분", "한 시간 반", "반 시간", "2시간 10분" 같은 길이 표현. 원문 위치를 그대로 돌려주므로
+ * 방문 이름과의 거리 계산이 원문 좌표에서 이루어진다. 시각("세 시 삼십 분")과 "…분까지"는 길이로 보지 않는다.
+ */
+internal fun spokenDurations(text: String): List<SpokenDuration> {
+    val hours = Regex("(?:(\\d+)|(?<![가-힣])(열한|열두|열|아홉|여덟|일곱|여섯|다섯|네|세|두|한))\\s*시간(?:\\s*(\\d+|$SINO)\\s*분|\\s*(반))?")
+        .findAll(text).mapNotNull { m ->
+            val h = m.groupValues[1].toIntOrNull() ?: nativeHourCounts[m.groupValues[2]] ?: return@mapNotNull null
+            val extra = when {
+                m.groupValues[4].isNotEmpty() -> 30
+                m.groupValues[3].isNotEmpty() -> countOf(m.groupValues[3]) ?: return@mapNotNull null
+                else -> 0
+            }
+            SpokenDuration(m.range, h * 60 + extra)
+        }.toList()
+    val halfHour = Regex("(?<![가-힣])반\\s*시간").findAll(text).map { SpokenDuration(it.range, 30) }
+        .filter { h -> hours.none { h.range.first in it.range } }.toList()
+    val minutes = Regex("(?:(\\d+)|(?<![가-힣])($SINO))\\s*분(?![들께해하석류명야노위])").findAll(text).filter { m ->
+        val before = text.substring(0, m.range.first).trimEnd()
+        !before.endsWith("시") && !text.substring(m.range.last + 1).trimStart().startsWith("까지") &&
+            (hours + halfHour).none { m.range.first in it.range }
+    }.mapNotNull { m ->
+        val digits = m.groupValues[1]
+        val n = digits.toIntOrNull() ?: KoreanTimeParser.sinoNumber(m.groupValues[2]) ?: return@mapNotNull null
+        // "이 분", "일 분"은 길이보다 다른 말일 때가 많다.
+        if (digits.isEmpty() && m.groupValues[2].length == 1 && n < 5) null else SpokenDuration(m.range, n)
+    }.toList()
+    return (hours + halfHour + minutes).sortedBy { it.range.first }
+}
+
 data class SpokenPlaceMention(val position: Int, val text: String, val destination: Boolean)
+
+/** "돌아가야 돼"·"빨리 가야 해"의 앞말은 장소 이름이 아니다. */
+private val notPlaceWords = setOf("들어", "돌아", "다시", "빨리", "일찍", "얼른", "먼저", "그냥", "꼭", "이제", "지금", "곧")
 
 /** Clock masking preserves offsets, so place and activity anchors still share one coordinate system. */
 fun spokenPlaceMentions(text: String): List<SpokenPlaceMention> {
@@ -68,14 +118,18 @@ fun spokenPlaceMentions(text: String): List<SpokenPlaceMention> {
             words.joinToString(" ") else words.last()
         SpokenPlaceMention(m.range.first + m.groupValues[1].lastIndexOf(name), name, false)
     }
-    val destinations = Regex("([가-힣A-Za-z0-9]+?)(?:까지|에|으로|로)?\\s*(?:까지\\s*)?(?:(?:데리러|픽업|태우러|받으러)\\s*)?(?:가야\\s*(?:해|돼)|도착해야\\s*(?:해|돼))")
-        .findAll(masked).map {
+    val destinations = Regex("([가-힣A-Za-z0-9]+?)(?:까지|에|으로|로)?\\s*(?:까지\\s*)?(?:(?:데리러|픽업|태우러|받으러)\\s*)?(?:(?:들어|돌아)\\s*)?(?:가야\\s*(?:해|돼)|도착해야\\s*(?:해|돼))")
+        .findAll(masked).filter { it.groupValues[1] !in notPlaceWords }.map {
             val name = it.groupValues[1]
             // An added activity ("병원도") keeps its existing activity inference.
             val addedActivity = name in setOf("병원도", "식당도", "마트도")
             SpokenPlaceMention(it.range.first, if (addedActivity) name.removeSuffix("도") else name, !addedActivity)
-        }
-    return (stores + destinations).sortedBy { it.position }.toList()
+        }.toList()
+    // "…세 시까지 집", "집으로 갈게", "집 도착": 집·회사·학교는 '가야 해' 없이도 도착지다.
+    val homes = Regex("(?<![가-힣A-Za-z0-9])(집|회사|학교)(?:으로|로|에|까지)?\\s*(?:(?:들어|돌아)\\s*)?(?=도착|갈게|갈래|가자|가려고|갈\\s*거|들어갈|돌아갈|$|[,.!?])")
+        .findAll(masked).filter { m -> destinations.none { m.range.first in it.position until it.position + it.text.length + 1 } }
+        .map { SpokenPlaceMention(it.range.first, it.groupValues[1], true) }
+    return (stores + destinations + homes).sortedBy { it.position }.toList()
 }
 
 /** A final transcript produces a patch over the existing plan. Missing fields never erase user input. */
@@ -89,7 +143,7 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
     val placeCorrection=Regex("^([가-힣A-Za-z][가-힣A-Za-z0-9 ]{1,30}?)(?:으로|로)$").matchEntire(normalized)
         ?.groupValues?.get(1)?.trim()?.takeIf {
             KoreanTimeParser.mentions(normalized).isEmpty() && !it.startsWith("아니") &&
-                !Regex("\\d+\\s*(?:시간|분)|충전|시간\\s*제약").containsMatchIn(normalized)
+                !Regex("\\d+\\s*(?:시간|분)|충전|시간\\s*제약").containsMatchIn(normalized) && spokenDurations(normalized).isEmpty()
         }
     val focusedVisit=current.visits.firstOrNull { it.id==focusedVisitId }
     if(placeCorrection!=null && focusedVisit!=null) {
@@ -103,13 +157,16 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
     val spoken = spokenPlaceMentions(normalized)
     val destination = spoken.lastOrNull { it.destination }
     val pickup = Regex("픽업|데리러|태우러|받으러").containsMatchIn(normalized)
-    val activityPatterns = listOf(Activity.SHOP to Regex("장\\s*보|장\\s*봐|마트"), Activity.MEAL to Regex("식사|밥\\s*먹|식당"),
+    val activityPatterns = listOf(Activity.SHOP to Regex("장\\s*보|장\\s*봐|마트|홈플러스|코스트코|트레이더스|다이소"),
+        Activity.MEAL to Regex("식사|밥\\s*먹|식당|(?:점심|저녁|아침)\\s*(?:을\\s*|은\\s*)?(?:먹|식사)"),
         Activity.COLLECT to Regex("물건|수령|택배"), Activity.HOSPITAL to Regex("병원"), Activity.PICKUP to Regex("픽업|데리러|태우러|받으러"),
         Activity.CHARGE to Regex("충전소만|충전\\s*할\\s*곳|충전소\\s*찾"))
+    // "마트는 안 들러도 돼", "마트 빼 줘": 말한 볼일을 하지 않겠다는 뜻이다.
+    val negatedTail = Regex("^\\s*(?:지\\s*(?:말|않)|[은는도]?\\s*말고|[은는도을를]?\\s*(?:안\\s*(?:들|가|갈|봐|볼|해|할)|빼|제외|생략|취소|필요\\s*없))")
     val activities = activityPatterns
         .mapNotNull { (kind, regex) -> regex.find(normalized)?.takeUnless { match ->
             val tail = normalized.substring(match.range.last+1)
-            Regex("^\\s*(지\\s*(말|않)|는?\\s*말고)").containsMatchIn(tail) ||
+            negatedTail.containsMatchIn(tail) ||
                 destination?.let { match.range.first in it.position until it.position + it.text.length } == true
         }?.let { Triple(it.range.first, kind, it.value) } }
         .plus(if (destination != null && !pickup) listOf(Triple(destination.position, Activity.ARRIVE, destination.text)) else emptyList())
@@ -175,7 +232,8 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
     // Resolve named places against actual saved places and explicitly labelled demo entries.
     val mentions = (if (remotePlaces) emptyList() else catalog).mapNotNull { entry ->
         entry.aliases.filter { it.length >= 2 }.mapNotNull { alias ->
-            normalized.indexOf(alias).takeIf { it >= 0 }?.let { Pair(it, alias) }
+            normalized.indexOf(alias).takeIf { it >= 0 && !negatedTail.containsMatchIn(normalized.substring(it + alias.length)) }
+                ?.let { Pair(it, alias) }
         }.minByOrNull { it.first }?.let { Triple(it.first, it.second, entry) }
     }.groupBy { it.first }.toSortedMap()
     for ((_, samePosition) in mentions) {
@@ -252,22 +310,23 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
         }
     }
     // A single clock minute is not a stay. Keep the range to associate a stay with its nearby visit.
-    val hourDurations = Regex("(\\d+)\\s*시간(?:\\s*(\\d+)\\s*분|\\s*(반))?").findAll(normalized).toList()
-    val minuteDurations = Regex("(\\d+)\\s*분").findAll(normalized).filter { m ->
-        val before = normalized.substring(0, m.range.first).trimEnd()
-        !before.endsWith("시") && !normalized.substring(m.range.last + 1).trimStart().startsWith("까지") &&
-            hourDurations.none { m.range.first in it.range }
-    }.toList()
-    val durationMatches = (hourDurations + minuteDurations).sortedBy { it.range.first }
+    val allDurations = spokenDurations(normalized)
+    // "2시간 안에 집 가야 해": 머무는 시간이 아니라 지금부터 잰 도착 마감이다.
+    val withinPattern = Regex("^\\s*(?:안에|안으로|이내|내에|내로)")
+    val within = allDurations.filter { withinPattern.containsMatchIn(normalized.substring(it.range.last + 1)) }
+    // "30분, 아니 40분": 정정 뒤의 값만 남기고, 가까운 방문은 처음 말한 자리로 찾는다.
+    val durationMatches = mutableListOf<SpokenDuration>()
+    for (d in allDurations - within.toSet()) {
+        val previous = durationMatches.lastOrNull()
+        if (previous != null && Regex("아니|말고|정정").containsMatchIn(normalized.substring(previous.range.last + 1, d.range.first))) {
+            durationMatches[durationMatches.lastIndex] = d.copy(anchor = previous.anchor)
+        } else durationMatches += d
+    }
     if (durationMatches.size > 1) {
         return SpeechUpdate(plan, applied, question ?: SpeechQuestion("체류 시간이 여러 개 들렸어요. 각 방문의 시간을 화면에서 확인해 주세요."))
     }
     val durationMatch = durationMatches.singleOrNull()
-    val duration = durationMatch?.let { m ->
-        if (m.groupValues.size > 2) m.groupValues[1].toIntOrNull()?.times(60)?.plus(
-            if (m.groupValues[3].isNotEmpty()) 30 else m.groupValues[2].toIntOrNull() ?: 0)
-        else m.groupValues[1].toIntOrNull()
-    }
+    val duration = durationMatch?.minutes
     if (duration != null && durationMatch != null) {
         val suffix = normalized.substring(durationMatch.range.last + 1).trimStart()
         if (Regex("^(뒤|후|전|뒤에|후에|전에)").containsMatchIn(suffix)) {
@@ -293,9 +352,10 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
                     anchors += (mention.position until mention.position + mention.text.length) to index
             }
         }
+        val spokenAt = durationMatch.anchor
         fun gap(range: IntRange): Int = when {
-            range.last < durationMatch.range.first -> durationMatch.range.first - range.last - 1
-            range.first > durationMatch.range.last -> range.first - durationMatch.range.last - 1
+            range.last < spokenAt.first -> spokenAt.first - range.last - 1
+            range.first > spokenAt.last -> range.first - spokenAt.last - 1
             else -> 0
         }
         val nearestGap = anchors.minOfOrNull { gap(it.first) }
@@ -322,7 +382,8 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
     val allTimeMentions = KoreanTimeParser.mentions(normalized)
     val timeMention = allTimeMentions.lastOrNull()
     val departureRole = Regex("출발").containsMatchIn(normalized)
-    val explicitArrivalRole = Regex("까지|도착|가야").containsMatchIn(normalized)
+    // "오후 세 시 전에"도 그 시각까지 도착한다는 뜻이다.
+    val explicitArrivalRole = Regex("까지|도착|가야|시\\s*(?:반\\s*)?이?전(?:에|엔|으로)").containsMatchIn(normalized)
     val arrivalRole = explicitArrivalRole || correctionOnly && current.visits.any { it.deadline != null }
     // Until role-to-clock association is reliable, never offer mixed-role clocks as one role's choices.
     if (departureRole && explicitArrivalRole && allTimeMentions.size > 1) {
@@ -346,7 +407,8 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
     }
     // "…○○까지 △△ 가야 해": 마감은 도착지(△△)의 것이다. 문장에 이름이 나온 다른 방문(저장된 장소로 묶인 마트 등)에 붙이지 않는다.
     val destinationTarget = destination?.takeUnless { correctionOnly }
-        ?.let { d -> plan.visits.indexOfLast { it.spokenPlace == d.text }.takeIf { it >= 0 } }
+        ?.let { d -> plan.visits.indexOfLast { it.spokenPlace == d.text }.takeIf { it >= 0 }
+            ?: plan.visits.indexOfLast { it.activity == (if (pickup) Activity.PICKUP else Activity.ARRIVE) }.takeIf { it >= 0 } }
     val timeTarget = destinationTarget ?: explicitTimeTargets.singleOrNull()?.index
         ?: deadlineTargets.singleOrNull()?.index?.takeIf { correctionOnly }
         ?: plan.visits.lastIndex
@@ -392,10 +454,25 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
             }
         }
     }
+    if (within.isNotEmpty()) {
+        if (timeMention != null || within.size > 1 || departureRole) {
+            if (question == null) question = SpeechQuestion("도착 마감 시각을 한 번만 말씀해 주세요.", plan.visits[timeTarget].id)
+        } else {
+            val at = now.withSecond(0).withNano(0).plusMinutes(within.single().minutes.toLong())
+            val visits = plan.visits.toMutableList()
+            visits[timeTarget] = visits[timeTarget].copy(deadline = at, placeholder = false)
+            plan = plan.copy(visits = visits)
+            applied += "${visits[timeTarget].place?.name ?: visits[timeTarget].label} 도착 마감 ${itineraryClock(at)}"
+        }
+    }
+    // 강한 표현(꼭·해야)을 먼저 보고, '안'·'조금'은 '충전' 바로 곁에 있을 때만 충전 방식으로 읽는다.
     when {
-        Regex("충전.*(안|없이|빼|하지\\s*마)").containsMatchIn(normalized) -> { plan = plan.copy(chargeMode = ChargeMode.NONE); applied += "충전 안 함" }
-        Regex("필요한\\s*양|충분히\\s*충전|꼭\\s*충전").containsMatchIn(normalized) -> { plan = plan.copy(chargeMode = ChargeMode.REQUIRED); applied += "필요한 양까지 충전" }
-        Regex("보충|조금|충전도|충전.*(하면서|동안)").containsMatchIn(normalized) -> { plan = plan.copy(chargeMode = ChargeMode.TOP_UP); applied += "볼일 중 충전" }
+        Regex("필요한\\s*양|충분히\\s*충전|꼭\\s*충전|충전\\s*[은을는]?\\s*꼭|충전\\s*[은을는]?\\s*해야|충전\\s*[은을]?\\s*안\\s*하면\\s*안").containsMatchIn(normalized) ->
+            { plan = plan.copy(chargeMode = ChargeMode.REQUIRED); applied += "필요한 양까지 충전" }
+        Regex("충전(?:소)?\\s*[은을는도]?\\s*(?:이번엔\\s*|이번에는\\s*)?(?:안\\s*(?:해|할|하|들|가)|없이|빼|하지\\s*마|필요\\s*없|생략)").containsMatchIn(normalized) ->
+            { plan = plan.copy(chargeMode = ChargeMode.NONE); applied += "충전 안 함" }
+        Regex("보충|조금\\s*(?:만\\s*)?충전|충전\\s*[은을]?\\s*조금|충전도|충전.*(하면서|동안)").containsMatchIn(normalized) ->
+            { plan = plan.copy(chargeMode = ChargeMode.TOP_UP); applied += "볼일 중 충전" }
     }
     return SpeechUpdate(plan, applied.distinct(), question)
 }

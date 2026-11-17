@@ -33,6 +33,8 @@ data class PlannerState(
     val reviewedRoute: NaviRoute? = null,
     val keptDestinationName: String? = null,
     val acknowledged: Boolean = false, val parkedConfirmed: Boolean = false, val parkedConfirmedAt:LocalDateTime?=null, val ownHandoff: Boolean = false,
+    /** 비교 화면에서 고르고 넘어갈 때 보였던 끝 시각. 확인 화면이 시계가 흘러 달라졌음을 알릴 때만 쓴다. */
+    val shownFinish: LocalDateTime? = null,
 ) {
     val selected: Option? get() = options.firstOrNull { it.id == selectedId }
     val busy: Boolean get() = phase == ApplyPhase.SENDING || phase == ApplyPhase.VERIFYING
@@ -248,7 +250,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         val s = state.value
         if (s.selected == null || s.question!=null || s.pendingTime!=null || s.departureExpired) { set(s.copy(message = "장소·충전 방식과 출발 시각을 확인해 주세요.")); return }
         approvedBaseline = (s.currentRoute as? NaviRead.Known)?.route
-        set(s.copy(screen = 2, selectionExplicit=true, acknowledged = false, approvalKey=null,phase = ApplyPhase.IDLE, requestSent=false, reviewedRoute=approvedBaseline, applyMessage = ""))
+        set(s.copy(screen = 2, shownFinish = s.selected?.results?.lastOrNull()?.finish, selectionExplicit=true, acknowledged = false, approvalKey=null,phase = ApplyPhase.IDLE, requestSent=false, reviewedRoute=approvedBaseline, applyMessage = ""))
     }
     fun back() { if (!state.value.busy) set(state.value.copy(screen = (state.value.screen - 1).coerceAtLeast(0))) }
     fun restart() = edit { it.copy(plan=Itinerary(),screen=0,selectedId=null,selectionExplicit=false,
@@ -302,13 +304,22 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             activeRead(token,g)
             val efficiency = if (simulateMissing) null else g.vehicle.readEfficiencyKmPerKwh()
             activeRead(token,g)
+            val remainingKwh = if (simulateMissing) null else g.vehicle.readBatteryEnergyKwh()
+            activeRead(token,g)
             val parkToken=++parkGeneration
             val park = g.vehicle.readParkState(); val parkAt=clock();activeRead(token,g)
             val route = if (simulateMissing) NaviRead.Unknown("시연: 내비 데이터 미수신") else g.navi.readRoute(); activeRead(token,g)
             val saved = if (simulateMissing) emptyList() else g.navi.readSavedPlaces(); activeRead(token,g)
             val at = now()
-            val readEnergy = Energy(range, efficiency,
-                (battery as? BatteryReading.Known)?.let { Measured(it.percent, Evidence(if(g.usingFakes) "차량 모의 값" else "Vehicle SOC", at, g.usingFakes)) })
+            val socRead = (battery as? BatteryReading.Known)?.percent
+            // 차량이 전비를 주지 않으면(실차에서 늘 그랬다) 주행 가능 거리 ÷ 배터리 잔여 에너지로 어림한다. 3~9 km/kWh 만 받는다.
+            val rangeForEstimate = (range ?: realEnergy.rangeKm?.takeIf { it.evidence.fresh(at) })?.value
+            val estimatedEfficiency = if (efficiency != null) null else estimateEfficiencyKmPerKwh(rangeForEstimate, remainingKwh?.value)
+                ?.let { Measured(it, Evidence("전비 추정(주행 가능 거리 ÷ 배터리 잔여 에너지) km/kWh", at, g.usingFakes)) }
+            val capacity = estimateBatteryCapacityKwh(remainingKwh?.value, socRead)
+                ?.let { Measured(it, Evidence("배터리 용량 추정(잔여 에너지 ÷ 잔량)", at, g.usingFakes)) }
+            val readEnergy = Energy(range, efficiency ?: estimatedEfficiency,
+                socRead?.let { Measured(it, Evidence(if(g.usingFakes) "차량 모의 값" else "Vehicle SOC", at, g.usingFakes)) }, capacity)
             realEnergy = readEnergy.copy(
                 socPercent = if(socToken == socVersion) readEnergy.socPercent else realEnergy.socPercent,
                 rangeKm = if(rangeToken == rangeVersion) readEnergy.rangeKm else realEnergy.rangeKm)
@@ -380,6 +391,10 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         repository.refreshRemote(plan, position, now(), ::current, ::publish, budget)
         if (!current()) return
         publish()
+        lastQueryAt = clock()
+        refreshTrips(::current)
+    }
+    private suspend fun refreshTrips(current: () -> Boolean) {
         if (state.value.demoRoutes) return
         val visits = state.value.plan.visits
         val first = visits.firstOrNull() ?: return
@@ -389,6 +404,40 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             if (result != null) tripCache[place.id] = result
         }
         if (!current()) return; set(calculate(state.value))
+    }
+    /** 마지막으로 경로·충전기 조회를 마친 실제 시각(시연 시계 아님). */
+    private var lastQueryAt: LocalDateTime? = null
+    /**
+     * 비교·확인 화면을 열어 둔 채 [liveRefreshSeconds] 가 지나면 다시 조회할 때다. 경로 근거는 300초, 충전기는 600초 뒤 낡아
+     * 끝나는 시각이 사라지고 확인해 둔 선택이 '조건이 바뀌었어요'가 됐다(검토 P1).
+     */
+    fun liveRefreshDue(liveRefreshSeconds: Long = kr.gakim.charge.data.remote.LIVE_REFRESH_SECONDS): Boolean {
+        val s = state.value
+        val last = lastQueryAt ?: return false
+        return s.screen >= 1 && !s.busy && !s.loading && s.phase != ApplyPhase.APPLIED && s.park != ParkState.MOVING &&
+            s.question == null && s.pendingTime == null && Duration.between(last, clock()).seconds >= liveRefreshSeconds
+    }
+    /** 장소 후보·선택은 그대로 두고 경로·충전기만 다시 읽는다. 결과가 같으면 선택과 확인도 그대로 남는다. */
+    suspend fun refreshLive() {
+        if (state.value.busy) return
+        val plan = state.value.plan
+        val signature = plan.visits to plan.departure
+        val g = gateways
+        val generation = ++remoteGeneration
+        fun current() = generation == remoteGeneration && g === gateways &&
+            signature == (state.value.plan.visits to state.value.plan.departure)
+        fun publish() {
+            if (current()) set(calculate(state.value.copy(now = now(), sourceStatuses = repository.sourceStatuses)))
+        }
+        // 실패해도 곧바로 다시 시도하지 않도록 시작 시각을 먼저 남긴다.
+        lastQueryAt = clock()
+        val position = if (repository.needsPosition && !g.usingFakes)
+            kotlinx.coroutines.withTimeoutOrNull(8_000) { g.navi.currentPosition() } else null
+        if (!current()) return
+        repository.refreshLive(plan, position, now(), ::current, ::publish)
+        if (!current()) return
+        publish()
+        refreshTrips(::current)
     }
     suspend fun refreshPark() {
         if(state.value.busy) return
@@ -431,14 +480,17 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
                 } ?: Leg(null, null) else Leg(null, null)
             }
             val chargeIndices=visits.indices.toList()
+            // 머무는 시간이 0분인 도착지에서 '볼일 중 보충'은 0분 충전이라 뜻이 없다(충전 전용 방문은 제외).
+            val topUpIndices=chargeIndices.filter { visits[it].stayMinutes>0 || visits[it].activity==Activity.CHARGE }
             val modes = listOf(ChargeMode.NONE, ChargeMode.TOP_UP, ChargeMode.REQUIRED)
             val raw=modes.flatMap { mode -> if(mode==ChargeMode.NONE) listOf(evaluateItinerary(plan,legs,mode,null,null,calculationEnergy,s.now))
-                else chargeIndices.map { idx ->
+                else (if(mode==ChargeMode.TOP_UP) topUpIndices else chargeIndices).map { idx ->
                     val site=repository.charging(visits[idx].place!!,s.now)?.also { sites[visits[idx].place!!.id]=it } ?: ChargingSite(Availability.UNKNOWN,evidence=Evidence("충전 시설 정보 없음",s.now))
                     evaluateItinerary(plan,legs,mode,idx,site,calculationEnergy,s.now)
                 } }
             // 충전을 요청했어도 충전기가 없는 장소는 '충전 안 함' 결과로라도 비교·선택할 수 있어야 한다(에뮬레이터 확인: 전부 '시각 미확인'으로 막혔다).
-            if (visits.none { v -> v.place?.id?.let(sites::containsKey) == true }) noChargerFallback += raw.first { it.mode == ChargeMode.NONE }.id
+            if (visits.none { v -> v.place?.id?.let(sites::containsKey) == true } ||
+                s.plan.chargeMode == ChargeMode.TOP_UP && topUpIndices.isEmpty()) noChargerFallback += raw.first { it.mode == ChargeMode.NONE }.id
             val baseline = evaluateItinerary(plan, legs, ChargeMode.NONE, null, null, calculationEnergy, s.now).totalMinutes
             raw.map { o ->
                 o.copy(extraMinutes = if(o.totalMinutes != null && baseline != null) o.totalMinutes!! - baseline else null,
@@ -467,7 +519,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
     }
     /** 확인 화면에서는 명령이 아닌 말로 일정을 바꾸지 않는다(이미 확인한 계획이 몰래 바뀌는 것을 막는다). */
     fun ignoreOnConfirm(text:String,source:String) = set(state.value.copy(transcript=text,partial="",listening=false,speechSource=source,
-        applyMessage="“$text” — 일정은 그대로예요. ‘안내 시작’ 또는 ‘다른 곳으로’라고 말해 주세요."))
+        applyMessage="“$text”$confirmIgnoredSuffix"))
     fun speechStopped() { set(state.value.copy(listening = false, level = 0f)) }
     fun acceptTranscript(text: String, source: String = "테스트 확정 문장") = edit { s ->
         val result = interpretItinerary(text, s.plan, speechCatalog(), now(), focusedVisitId=speechFocus, remotePlaces = repository.remotePlacesEnabled)

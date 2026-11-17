@@ -94,4 +94,20 @@ class ItineraryTest {
         val far=evaluateItinerary(plan(),listOf(leg(20,15.0)),ChargeMode.REQUIRED,0,site,energy(20.0),now)
         assertEquals(close.id,recommend(listOf(far,close))?.id)
     }
+    // 2026-11-17 사용자 결정: 약속에 여유가 넉넉하면 '들른 김에 충전'을 기본으로 권한다.
+    @Test fun topUpIsRecommendedWhenSlackIsAmple() {
+        fun options(deadline:LocalDateTime?,siteNow:ChargingSite=site):List<Option> {
+            val p=Itinerary(listOf(Visit(1,place=a,stayMinutes=30),Visit(2,Activity.ARRIVE,place=b,deadline=deadline)),reserveKm=10.0)
+            val legs=listOf(leg(10,5.0),leg(10,5.0))
+            return listOf(evaluateItinerary(p,legs,ChargeMode.NONE,null,null,energy(100.0),now),evaluateItinerary(p,legs,ChargeMode.TOP_UP,0,siteNow,energy(100.0),now))
+        }
+        assertEquals(ChargeMode.TOP_UP,recommend(options(now.plusHours(2)))?.mode)
+        assertEquals(ChargeMode.TOP_UP,recommend(options(null),25)?.mode)
+        // 충전하면 약속 여유가 15분 아래로 줄면 빠른 쪽 그대로.
+        assertEquals(ChargeMode.NONE,recommend(options(now.plusMinutes(70)))?.mode)
+        // 배터리가 이미 넉넉하거나, 충전기가 지금 사용 가능이 아니거나, 대기로 15분 넘게 늘면 권하지 않는다.
+        assertEquals(ChargeMode.NONE,recommend(options(now.plusHours(2)),80)?.mode)
+        assertEquals(ChargeMode.NONE,recommend(options(now.plusHours(2),site.copy(availability=Availability.UNKNOWN)))?.mode)
+        assertEquals(ChargeMode.NONE,recommend(options(now.plusHours(2),site.copy(waitMinutes=Measured(10,evidence))))?.mode)
+    }
 }

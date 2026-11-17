@@ -231,7 +231,8 @@ private fun SourcesSheet(s:PlannerState,option:Option?,vm:PlannerViewModel,close
                 option.closingNotices.forEach { Text("⚠ ${it.label} → 문을 연 다른 장소를 골라 주세요",color=GakimColors.Tight) }
                 warnings.map { warningFallback(it,option,baseline) }.distinct().forEach { Text("⚠ $it",color=GakimColors.Tight) }
             }
-            if(option.mode!=ChargeMode.NONE) PrimaryButton("충전 없이 가기",{baseline?.let { vm.stopListening();vm.controller.selectMode(it.id);close() }},Modifier.fillMaxWidth(),
+            // 고른 것(충전)과 반대 행동이므로 주 버튼이 아니라 보조 버튼이다.
+            if(option.mode!=ChargeMode.NONE) PlannerPill("충전 빼고 ${clock(baseline?.results?.lastOrNull()?.finish)}에 끝내기",{baseline?.let { vm.stopListening();vm.controller.selectMode(it.id);close() }},Modifier.fillMaxWidth(),
                 baseline?.chargeControlEnabled()==true && !s.busy && s.park!=ParkState.MOVING)
             val related=s.cardOptions.filter { it.visits.map { v->v.place?.id }==option.visits.map { v->v.place?.id } && it.mode==option.mode }
             if(related.map { it.chargeVisitId }.distinct().size>1) {

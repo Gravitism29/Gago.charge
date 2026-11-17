@@ -93,8 +93,8 @@ internal fun PlannerToday(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
                 }
                 if(s.plan.visits.size>1) {
                     Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                        PlannerPill("앞으로",{vm.edit { c.move(visit.id,-1) }},Modifier.weight(1f),enabled && visit!=s.plan.visits.first())
-                        PlannerPill("뒤로",{vm.edit { c.move(visit.id,1) }},Modifier.weight(1f),enabled && visit!=s.plan.visits.last())
+                        PlannerPill("순서 앞으로",{vm.edit { c.move(visit.id,-1) }},Modifier.weight(1f),enabled && visit!=s.plan.visits.first())
+                        PlannerPill("순서 뒤로",{vm.edit { c.move(visit.id,1) }},Modifier.weight(1f),enabled && visit!=s.plan.visits.last())
                     }
                     PlannerPill("방문 삭제",{vm.edit { c.remove(visit.id) };editing=null},Modifier.fillMaxWidth(),enabled,color=GakimColors.Late)
                 }
@@ -103,7 +103,8 @@ internal fun PlannerToday(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
         Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
             PlannerPill("더보기",{open("more")},enabled=enabled)
             Spacer(Modifier.weight(1f))
-            PrimaryButton("일정에 맞는 곳 비교 →",{vm.stopListening();c.compare()},Modifier.width(380.dp),enabled=enabled && !s.loading && s.inputBlocker==null && s.pendingTime==null && s.question==null)
+            // 편집 중에는 주 버튼을 하나만 둔다(편집 마치기).
+            if(visit==null) PrimaryButton("일정에 맞는 곳 비교 →",{vm.stopListening();c.compare()},Modifier.width(380.dp),enabled=enabled && !s.loading && s.inputBlocker==null && s.pendingTime==null && s.question==null)
         }
     }
 }
@@ -117,7 +118,7 @@ private fun VisitChip(index:Int,visit:Visit,s:PlannerState,enabled:Boolean,onCli
             Text("${visit.label} · ${visit.placeLabel()}",style=GakimType.BodyBold,maxLines=1,overflow=TextOverflow.Ellipsis)
             Text(visit.timeDetail(s.now),style=GakimType.Caption,maxLines=1)
         }
-        Text("수정",style=GakimType.Caption,color=GakimColors.Voice)
+        Text("수정 ›",style=GakimType.CaptionBold,color=GakimColors.Voice)
     }
 }
 
@@ -128,7 +129,7 @@ internal fun VisitEditorPanel(v:Visit,now:LocalDateTime,enabled:Boolean,setStay:
             Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                 PlannerPill(v.label,{open("kind:${v.id}")},Modifier.weight(1f),enabled)
                 PlannerPill(v.place?.name ?: "장소 미정",{open("place:${v.id}")},Modifier.weight(1.4f),enabled)
-                PlannerPill(v.deadline?.let { "${at(it,now)}까지 도착" } ?: "도착 시간 · 제약 없음",{open("time:${v.id}")},Modifier.weight(1.5f),enabled)
+                PlannerPill(v.deadline?.let { "${at(it,now)}까지 도착" } ?: "도착 시각 · 정하지 않음",{open("time:${v.id}")},Modifier.weight(1.5f),enabled)
             }
             TimeDial(v.stayMinutes,TimeDialMode.Duration,setStay,Modifier.fillMaxWidth(),enabled=enabled,dialSize=384.dp)
         }

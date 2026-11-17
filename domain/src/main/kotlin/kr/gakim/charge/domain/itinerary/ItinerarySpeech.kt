@@ -10,33 +10,49 @@ data class SpeechUpdate(val plan: Itinerary, val applied: List<String>, val ques
 sealed interface PlannerVoiceCommand {
     data class Proceed(val placeName: String? = null) : PlannerVoiceCommand
     data class Charge(val mode: ChargeMode) : PlannerVoiceCommand
+    /** 화면에 보이는 후보를 순서로 고른다(0 = 왼쪽). 고르기만 하고 넘어가지는 않는다. */
+    data class Pick(val index: Int) : PlannerVoiceCommand
+    data object PickRecommended : PlannerVoiceCommand
     data object OtherPlaces : PlannerVoiceCommand
+    data object Compare : PlannerVoiceCommand
     data object Confirm : PlannerVoiceCommand
     data object Back : PlannerVoiceCommand
     data object KeepDestination : PlannerVoiceCommand
     data object ReplaceDestination : PlannerVoiceCommand
 }
 
+private val yesWords = setOf("응", "네", "예", "그래", "좋아")
+
 /** Whole-utterance commands: quoted examples, negations and plan edits never authorise a route. */
 fun plannerVoiceCommand(text: String, screen: Int): PlannerVoiceCommand? {
-    val words = text.trim().trimEnd('.', '!', '?').replace(Regex("\\s+"), "")
+    // "좋아요"·"들를게요"처럼 끝의 '요'만 다른 말은 같은 명령이다.
+    val words = text.trim().trimEnd('.', '!', '?').replace(Regex("\\s+"), "").let { if (it.length > 1) it.removeSuffix("요") else it }
+    if (screen == 0) return when (words) {
+        // 화면이 "이 일정으로 비교할까요?"라고 묻는다. 그 물음에 대한 대답만 받는다.
+        in yesWords, "비교", "비교해", "비교해줘", "비교하자", "찾아줘", "찾아봐", "그렇게해", "그렇게해줘" -> PlannerVoiceCommand.Compare
+        else -> null
+    }
     if (screen == 2) return when (words) {
-        "들를게", "들를게요", "경유", "경유할게", "추가", "추가해줘" -> PlannerVoiceCommand.KeepDestination
-        "빼고", "빼고갈게", "그것만", "거기만" -> PlannerVoiceCommand.ReplaceDestination
-        "안내시작", "응", "그래", "가자" -> PlannerVoiceCommand.Confirm
-        "아니", "다른곳", "다른곳으로", "다른곳보여줘" -> PlannerVoiceCommand.Back
+        "들를게", "들르자", "경유", "경유할게", "추가", "추가해줘", "거기도", "거기도가자" -> PlannerVoiceCommand.KeepDestination
+        "빼고", "빼고갈게", "그것만", "거기만", "거기만가자" -> PlannerVoiceCommand.ReplaceDestination
+        in yesWords, "안내시작", "안내시작해", "안내시작해줘", "안내해", "안내해줘", "가자", "그래가자", "응가자", "출발", "출발해", "출발하자", "이경로로안내" -> PlannerVoiceCommand.Confirm
+        "아니", "뒤로", "취소", "다른곳", "다른데", "다른곳으로", "다른곳보여줘" -> PlannerVoiceCommand.Back
         else -> null
     }
     if (screen != 1) return null
     return when (words) {
-        "이걸로가자", "그걸로가자", "여기로가자" -> PlannerVoiceCommand.Proceed()
-        "충전하고", "충전하고갈게", "충전하고갈래" -> PlannerVoiceCommand.Charge(ChargeMode.TOP_UP)
-        "충전안해", "충전안할게", "충전없이갈게" -> PlannerVoiceCommand.Charge(ChargeMode.NONE)
+        in yesWords, "이걸로", "그걸로", "여기로", "이걸로가자", "그걸로가자", "여기로가자", "이걸로갈게", "여기로갈게" -> PlannerVoiceCommand.Proceed()
+        "충전하고", "충전하고갈게", "충전하고갈래", "충전할게", "충전할래" -> PlannerVoiceCommand.Charge(ChargeMode.TOP_UP)
+        "충전안해", "충전안할게", "충전안할래", "충전없이갈게", "충전없이" -> PlannerVoiceCommand.Charge(ChargeMode.NONE)
         "충분히충전", "충분히충전하고갈게", "필요한만큼충전" -> PlannerVoiceCommand.Charge(ChargeMode.REQUIRED)
-        "다른곳", "다른곳보여줘", "다른곳으로" -> PlannerVoiceCommand.OtherPlaces
-        else -> Regex("^(.+?)(?:으로|로)가자$").matchEntire(words)?.groupValues?.get(1)
-            ?.takeUnless { it.contains("충전") || it.startsWith("아니") }
-            ?.let { PlannerVoiceCommand.Proceed(it) }
+        "다른곳", "다른데", "다음", "다른곳보여줘", "다른곳으로" -> PlannerVoiceCommand.OtherPlaces
+        "뒤로", "일정수정", "처음으로" -> PlannerVoiceCommand.Back
+        "추천", "추천대로", "추천으로", "추천한곳", "추천한곳으로" -> PlannerVoiceCommand.PickRecommended
+        else -> Regex("^(첫번째|1번|일번|왼쪽|두번째|2번|이번|오른쪽)(?:걸로|거|으로|로)?$").matchEntire(words)?.groupValues?.get(1)
+            ?.let { PlannerVoiceCommand.Pick(if (it in setOf("첫번째", "1번", "일번", "왼쪽")) 0 else 1) }
+            ?: Regex("^(.+?)(?:으로|로)(?:가자|갈게|갈래|가줘)?$").matchEntire(words)?.groupValues?.get(1)
+                ?.takeUnless { it.contains("충전") || it.startsWith("아니") || it.length < 2 }
+                ?.let { PlannerVoiceCommand.Proceed(it) }
     }
 }
 

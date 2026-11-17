@@ -36,8 +36,8 @@ android {
         applicationId = "kr.gakim.charge"
         minSdk = 28 // 공모전 요건
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.5.1"
+        versionCode = 9
+        versionName = "0.5.3"
         buildConfigField("String", "KAKAO_REST_API_KEY", apiKey("kakao.restApiKey", "KAKAO_REST_API_KEY"))
         buildConfigField("String", "DATA_GO_KR_SERVICE_KEY", apiKey("datagokr.serviceKey", "DATAGOKR_SERVICE_KEY"))
     }

@@ -63,7 +63,8 @@ class PlannerCompareLayoutTest {
     }
     @Test fun chargingRowOnlyWhenTheChosenModeCharges() {
         assertNull(option().chargingRow())
-        assertEquals("충전 22분 · 은평점",option(ChargeMode.TOP_UP,1,22).chargingRow())
+        // 2026-11-17: 볼일과 겹치는 충전은 카드의 '주차·연결'과 같은 말로 보여 준다(상세 창만 "충전 30분"이라 엇갈렸다).
+        assertEquals("장보기 20분 동안 충전(추정)",option(ChargeMode.TOP_UP,1,22).chargingRow())
         assertEquals("충전 시간 미확인 · 은평점",option(ChargeMode.TOP_UP,1,null).chargingRow())
     }
     @Test fun slackChipUsesOnlyTheComputedSlack() {

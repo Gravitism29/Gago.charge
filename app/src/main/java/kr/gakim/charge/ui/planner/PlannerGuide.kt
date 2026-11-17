@@ -46,8 +46,15 @@ internal fun PlannerGuide(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
                     Text(option.mode.driverLabel(),style=GakimType.Title,color=GakimColors.Accent)
                     val place=option.visits.firstOrNull { it.id==option.chargeVisitId }?.place
                     Text(benefitLine(option,s.energy,s.now,place?.id?.let(s.chargingSites::get)),style=GakimType.Body)
-                    Text(option.deadlineLabel(),style=GakimType.BodyBold,color=if(option.late) GakimColors.Tight else GakimColors.Accent)
-                    option.critical?.visit?.deadline?.let { Text("약속 ${at(it,s.now)}까지",style=GakimType.Caption) }
+                    option.critical?.visit?.deadline?.let {
+                        Text("${at(it,s.now)}까지 · ${option.deadlineLabel()}",style=GakimType.BodyBold,color=if(option.late) GakimColors.Tight else GakimColors.Text)
+                    }
+                    // 비교 화면에서 본 것과 같은 막대·숫자를 그대로 보여 준다(화면이 바뀌어도 같은 계획임을 알 수 있게).
+                    PlannerTimeline(option,s.shownDeparture(option),Modifier.fillMaxWidth().padding(top=8.dp))
+                    if(applied) (s.actualRoute ?: (s.currentRoute as? NaviRead.Known)?.route)?.let { route ->
+                        Text("내비에 들어간 경로",style=GakimType.Caption)
+                        Text(routeText(route),style=GakimType.BodyBold,color=GakimColors.Accent)
+                    }
                 }
             }
         }
@@ -56,7 +63,9 @@ internal fun PlannerGuide(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
                 val removedDestination=destination?.takeIf { d -> removed.any { PlaceMatcher.samePlace(it,d) } }
                 val old=removedDestination?.name ?: removed.joinToString(" · ") { it.name }
                 val next=s.selected?.visits?.lastOrNull()?.place?.name ?: "새 목적지"
-                Text("${old}에는 안 가셔도 되나요?",style=GakimType.Title,color=GakimColors.Tight)
+                // 방금 이 앱이 보낸 경로면 남이 정한 목적지처럼 묻지 않는다.
+                val ours=removedDestination?.let { d -> c.sentByThisApp(d) }==true
+                Text(if(ours) "방금 보낸 $old 경로를 바꿀까요?" else "${old}에는 안 가셔도 되나요?",style=GakimType.Title,color=GakimColors.Tight)
                 Text("${withRo(next)} 바꾸면 ${withGa(removed.joinToString(" · ") { it.name })} 경로에서 빠져요.",style=GakimType.Caption,color=GakimColors.Text)
                 Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) {
                     RouteChoiceButton("${old}도 들르기","경유지로 추가해요",{vm.edit { c.keepExistingDestination() }},Modifier.weight(1f),enabled && s.canKeepDestination(),false)
@@ -74,7 +83,8 @@ internal fun PlannerGuide(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
         if(s.park==ParkState.UNKNOWN && !applied) PlannerPill(if(s.parkedConfirmed) "✓ 주차 중이에요" else "주차 중이에요 · 눌러서 확인",{c.setParked(!s.parkedConfirmed)},Modifier.fillMaxWidth(),enabled,s.parkedConfirmed)
         if(!applied) {
             val name=s.selected?.visits?.lastOrNull()?.place?.name
-            if(name!=null) Text("차량 내비 목적지를 ${withRo(name)} 설정합니다",style=GakimType.Caption.copy(fontSize=20.sp),color=GakimColors.Text)
+            // 고르기 전에는 결정된 것처럼 말하지 않는다.
+            if(name!=null && (removed.isEmpty() || s.acknowledged)) Text("‘이 경로로 안내’를 누르면 차량 내비 목적지가 ${withRo(name)} 바뀌어요",style=GakimType.Caption.copy(fontSize=20.sp),color=GakimColors.Text)
         }
         Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
             if(applied) Spacer(Modifier.weight(1f)) else PlannerStepMic(s,if(removed.isNotEmpty() && !s.acknowledged) "“들를게” · “거기만”" else "“안내 시작” · “다른 곳으로”",vm::toggleListening,Modifier.weight(1f),enabled)
@@ -91,8 +101,8 @@ internal fun PlannerGuide(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
 internal fun RouteTimeline(s:PlannerState,modifier:Modifier=Modifier,compact:Boolean=false) {
     val option=s.selected
     Column(modifier.clip(CardShape).background(GakimColors.Surface).padding(if(compact) 8.dp else 20.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-        TimelineStop("현재 위치 출발",clock(s.plan.departure ?: s.now),Icon.CAR)
-        var previous=s.plan.departure ?: s.now
+        TimelineStop("현재 위치 출발",clock(s.shownDeparture(option)),Icon.CAR)
+        var previous=s.shownDeparture(option)
         option?.results?.forEach { result ->
             val travel=result.arrival?.let { java.time.Duration.between(previous,it).toMinutes().coerceAtLeast(0) }
             Row(Modifier.padding(start=24.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
@@ -107,7 +117,7 @@ internal fun RouteTimeline(s:PlannerState,modifier:Modifier=Modifier,compact:Boo
             result.finish?.let { previous=it }
         }
         Box(Modifier.padding(start=24.dp).width(3.dp).height(20.dp).background(GakimColors.Accent))
-        TimelineStop("모두 끝",clock(option?.results?.lastOrNull()?.finish),Icon.FLAG)
+        TimelineStop("일정 끝",clock(option?.results?.lastOrNull()?.finish),Icon.FLAG)
     }
 }
 

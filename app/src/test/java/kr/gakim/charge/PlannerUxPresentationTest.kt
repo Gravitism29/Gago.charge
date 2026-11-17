@@ -69,7 +69,7 @@ class PlannerUxPresentationTest {
     @Test fun estimatedGainRoundsDownAndNeedsPowerAndTime() {
         val site=ChargingSite(Availability.AVAILABLE,evidence=Evidence("t",LocalDateTime.of(2026,11,16,12,0)),
             effectivePowerKw=Measured(50.0,Evidence("t",LocalDateTime.of(2026,11,16,12,0))))
-        assertEquals(120,estimatedRangeGain(30,site))
+        assertEquals(125,estimatedRangeGain(30,site)) // 5km 단위 내림
         assertEquals(5,estimatedRangeGain(9,site.copy(effectivePowerKw=Measured(7.0,site.evidence))))
         assertNull(estimatedRangeGain(null,site)); assertNull(estimatedRangeGain(30,site.copy(effectivePowerKw=null)))
     }

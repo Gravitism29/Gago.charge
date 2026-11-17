@@ -22,19 +22,23 @@ class PlannerRound2SynthesisTest {
             mode,51,20.0,extra,30,null,EnergyDecision(status,0.0,""),true,emptyList(),emptyList(),Availability.AVAILABLE,1)
     @Test fun ampleSocUsesNoChargeConclusionWithAndWithoutExtraTime() {
         val energy=low.copy(socPercent=Measured(80,evidence))
-        assertEquals("오늘은 충전 안 해도 돼요",benefitLine(option(ChargeMode.NONE),energy,now,site))
-        assertEquals("오늘은 충전 안 해도 돼요. 충전하면 8분 더 걸려요.",benefitLine(option(),energy,now,site))
-        assertEquals("오늘은 충전 안 해도 돼요. 충전해도 끝나는 시각은 같아요.",benefitLine(option(extra=0),energy,now,site))
+        // 2026-11-17 평가 반영: '오늘은 충전 안 해도 돼요'는 이번 일정만 본 판단을 넓힌 말이고 충전으로 얻는 양을 가렸다.
+        assertEquals("이번 일정은 충전 없이 갈 수 있어요.",benefitLine(option(ChargeMode.NONE),energy,now,site))
+        assertEquals("지금도 충분하지만, 식사하는 동안 약 +125km(추정) 충전돼요. 8분 더 걸려요.",benefitLine(option(),energy,now,site))
+        assertEquals("지금도 충분하지만, 식사하는 동안 약 +125km(추정) 충전돼요. 충전해도 끝나는 시각은 같아요.",benefitLine(option(extra=0),energy,now,site))
+        assertEquals("이번 일정은 충전 없이 갈 수 있어요. 배터리가 25%라 들른 김에 채워 두면 좋아요.",
+            benefitLine(option(ChargeMode.NONE),low.copy(socPercent=Measured(25,evidence)),now,site))
     }
     @Test fun tripleRangeAlsoCountsAsAmpleAndStaleReadingsDoNot() {
-        assertTrue(benefitLine(option(),low.copy(rangeKm=Measured(60.0,evidence)),now,site).startsWith("오늘은 충전 안 해도 돼요."))
+        // 주행 가능 거리가 넉넉해도 충전으로 얻는 양은 숨기지 않는다. 오래된 잔량은 '충분'의 근거로 쓰지 않는다.
+        assertTrue(benefitLine(option(),low.copy(rangeKm=Measured(60.0,evidence)),now,site).startsWith("식사하는 동안 약 +125km(추정)"))
         val stale=low.copy(socPercent=Measured(100,evidence.copy(observedAt=now.minusMinutes(3))))
-        assertFalse(benefitLine(option(),stale,now,site).startsWith("오늘은"))
+        assertFalse(benefitLine(option(),stale,now,site).startsWith("지금도 충분"))
     }
     @Test fun optionalLowerBatteryUsesVisitActivityAndEstimatedGain() {
         for((activity,word) in listOf(Activity.SHOP to "장 보는 동안",Activity.MEAL to "식사하는 동안",Activity.HOSPITAL to "진료받는 동안",Activity.CUSTOM to "볼일 보는 동안")) {
             val v=visit.copy(activity=activity)
-            assertEquals("$word 약 +120km(추정) 충전돼요. 8분 더 걸려요.",benefitLine(option().copy(visits=listOf(v)),low,now,site))
+            assertEquals("$word 약 +125km(추정) 충전돼요. 8분 더 걸려요.",benefitLine(option().copy(visits=listOf(v)),low,now,site))
         }
     }
     @Test fun neededChargingHasClearNoneAndChargingConclusions() {
@@ -75,7 +79,8 @@ class PlannerRound2SynthesisTest {
     }
     @Test fun warningsHaveOneSeparateFallbackAndNoConditionalJargon() {
         val o=option().copy(conditions=listOf("대기 시간 미확인 · 바로 충전할 경우의 조건부 예상"),chargingNote="속도 추정")
-        assertEquals("충전기 자리는 도착해야 알 수 있어요",o.detailsConclusion())
+        assertEquals("지금은 충전기를 쓸 수 있어요. 자리는 도착해서 확인해요.",o.detailsConclusion())
+        assertEquals("충전기 자리는 도착해야 알 수 있어요",o.copy(chargingStatus=Availability.UNKNOWN).detailsConclusion())
         assertEquals("대기 줄이 있을 수 있어요",warningFallback(o.conditions.single(),o,null))
         assertEquals("충전 속도와 주차·연결 시간은 추정이에요",warningFallback(o.chargingNote,o,null))
         assertFalse(sourceLabel(o.conditions.single()).contains("조건부 예상"))

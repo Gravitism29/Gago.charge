@@ -134,7 +134,8 @@ fun evaluateItinerary(plan: Itinerary, legs: List<Leg>, mode: ChargeMode, charge
         conditions += decision.note
     } else if (decision.status == EnergyStatus.NEED_CHARGE) conditions += "충전 없이 가면 도착 후 여유 거리 부족"
     if (decision.status == EnergyStatus.UNKNOWN) conditions += decision.note
-    val depart = plan.departure ?: now
+    // 화면은 분 단위로만 보여 주므로 출발도 분 단위로 맞춘다(초가 남으면 화면마다 이동·끝 시각이 1분씩 어긋났다).
+    val depart = plan.departure ?: now.truncatedTo(java.time.temporal.ChronoUnit.MINUTES)
     val departureElapsed = plan.departure?.isBefore(now) == true
     if (departureElapsed) {
         selectable = false
@@ -161,10 +162,27 @@ fun evaluateItinerary(plan: Itinerary, legs: List<Leg>, mode: ChargeMode, charge
         chargingNote = site?.takeUnless { it.evidence.demo }?.note.orEmpty())
 }
 
-fun recommend(options: List<Option>): Option? = options.filter { it.selectable && !it.late && it.closingNotices.isEmpty() && it.totalMinutes != null &&
-    (it.mode == ChargeMode.NONE || it.chargingStatus == Availability.AVAILABLE) &&
-    (it.energy.status == EnergyStatus.OPTIONAL || it.energy.status == EnergyStatus.NEED_CHARGE && it.mode == ChargeMode.REQUIRED && it.chargeMinutes != null) }
-    .minByOrNull { it.totalMinutes!! }
+/** 들른 김에 충전을 기본으로 권할 때의 한도: 충전으로 늘어나는 시간, 충전하고도 남아야 하는 약속 여유. */
+const val TOP_UP_MAX_EXTRA_MINUTES = 15L
+const val TOP_UP_MIN_SLACK_MINUTES = 15L
+const val TOP_UP_SKIP_SOC_PERCENT = 80
+
+/**
+ * 가장 빨리 끝나는 선택을 고른 뒤, 같은 곳에서 볼일 보는 동안 충전할 수 있고 약속에 여유가 넉넉하면 '들른 김에 충전'을 권한다
+ * (2026-11-17 사용자 결정). 충전기가 지금 사용 가능일 때만, 배터리가 이미 80% 이상이면 권하지 않는다.
+ */
+fun recommend(options: List<Option>, socPercent: Int? = null): Option? {
+    val eligible = options.filter { it.selectable && !it.late && it.closingNotices.isEmpty() && it.totalMinutes != null &&
+        (it.mode == ChargeMode.NONE || it.chargingStatus == Availability.AVAILABLE) &&
+        (it.energy.status == EnergyStatus.OPTIONAL || it.energy.status == EnergyStatus.NEED_CHARGE && it.mode == ChargeMode.REQUIRED && it.chargeMinutes != null) }
+    val fastest = eligible.minByOrNull { it.totalMinutes!! } ?: return null
+    if (fastest.mode != ChargeMode.NONE || (socPercent ?: 0) >= TOP_UP_SKIP_SOC_PERCENT) return fastest
+    val places = fastest.visits.map { it.place?.id }
+    return eligible.filter { o -> o.mode == ChargeMode.TOP_UP && (o.chargeMinutes ?: 0) > 0 && o.visits.map { it.place?.id } == places &&
+        o.totalMinutes!! - fastest.totalMinutes!! <= TOP_UP_MAX_EXTRA_MINUTES &&
+        o.results.filter { it.visit.deadline != null }.all { (it.slackMinutes ?: -1) >= TOP_UP_MIN_SLACK_MINUTES } }
+        .minByOrNull { it.totalMinutes!! } ?: fastest
+}
 
 fun moveVisit(plan: Itinerary, index: Int, delta: Int): Itinerary {
     val target = index + delta

@@ -83,7 +83,8 @@ class PlannerViewModel(application: Application) : AndroidViewModel(application)
                             val command=controller.handleVoiceCommand(event.text,speechSource)
                             if(command==PlannerVoiceCommand.Confirm) startGuidance()
                             else if(command==null) { controller.onSpeech(event,speechSource);preview() }
-                            if(state.value.tts) source.speechOutput.speak(state.value.applied.joinToString(". "))
+                            // 들은 내용을 되읽고 다음 물음으로 끝낸다. 안내 시작을 말한 뒤에는 다시 묻지 않는다.
+                            if(state.value.tts && command!=PlannerVoiceCommand.Confirm) state.value.spokenPrompt().takeIf { it.isNotBlank() }?.let { source.speechOutput.speak(it) }
                             speechGeneration++
                         } else controller.onSpeech(event, if(source.usingFakes) "모의 SpeechGateway" else "공식 SpeechToText")
                     }

@@ -52,17 +52,17 @@ internal fun PlannerCompare(s:PlannerState,vm:PlannerActions,open:(String)->Unit
         if(selectedGroup>=0 && selectedGroup/2!=pager.currentPage) pager.scrollToPage(selectedGroup/2)
     }
     val enabled=!s.busy && !s.departureExpired && s.park!=ParkState.MOVING
-    val depart=s.plan.departure ?: s.now
+    val depart=s.shownDeparture(s.selected ?: s.recommendedForDisplay() ?: s.cardOptions.firstOrNull())
     Column(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
             Column(Modifier.weight(1f)) {
-                Text("어디로 들렀다 갈까요?",style=GakimType.Assistant,maxLines=1)
+                Text(if(groups.size==1) "이 일정으로 갈까요?" else "어디로 들렀다 갈까요?",style=GakimType.Assistant,maxLines=1)
                 Text(s.presentationIssue()?.line ?: (if(s.demoMartFallback) martFallbackLine else s.message) ?: "${at(depart,s.now)} 출발 · ${s.plan.visits.joinToString(" → ") { it.place?.name ?: it.label }}",style=GakimType.Caption,maxLines=2)
             }
             if(s.presentationIssue()?.retry==true) PlannerPill("다시 시도",vm::refresh,enabled=enabled)
             if(pages.size>1) {
                 PlannerPill("←",{scope.launch { pager.animateScrollToPage((pager.currentPage-1).coerceAtLeast(0)) }},Modifier.width(76.dp),pager.currentPage>0)
-                Text("${pager.currentPage+1}/${pages.size}",style=GakimType.BodyBold)
+                Text("${pager.currentPage*2+1}–${(pager.currentPage*2+2).coerceAtMost(groups.size)} / ${groups.size}곳",style=GakimType.BodyBold)
                 PlannerPill("→",{scope.launch { pager.animateScrollToPage((pager.currentPage+1).coerceAtMost(pages.lastIndex)) }},Modifier.width(76.dp),pager.currentPage<pages.lastIndex)
             }
         }
@@ -94,6 +94,7 @@ private fun CandidateCard(s:PlannerState,options:List<Option>,vm:PlannerActions,
         vm.stopListening();preview=option.id
         if(option.chargeControlEnabled()) vm.controller.selectMode(option.id)
     }
+    @Suppress("NAME_SHADOWING") val depart=s.shownDeparture(chosen)
     val chargeOptions=options.filter { it.mode!=ChargeMode.NONE }
     val focus=chosen.chargeVisitId ?: chargeOptions.firstOrNull { it.selectable && s.chargingSites[it.visits.firstOrNull { v->v.id==it.chargeVisitId }?.place?.id]!=null }?.chargeVisitId ?: chargeOptions.firstOrNull()?.chargeVisitId
     val place=chosen.visits.firstOrNull { it.id==focus }?.place
@@ -110,7 +111,7 @@ private fun CandidateCard(s:PlannerState,options:List<Option>,vm:PlannerActions,
             Text(chosen.placeName(s),style=GakimType.Title,maxLines=1,overflow=TextOverflow.Ellipsis)
             if(chosen.closingNotices.isNotEmpty()) FitLine("⚠ ${chosen.closingNotices.joinToString(" · ") { it.label }}",GakimType.CaptionBold.copy(color=GakimColors.Tight))
             else if(options.any { it.id==recommended?.id }) Box(Modifier.clip(PillShape).background(GakimColors.brandH()).padding(horizontal=10.dp,vertical=2.dp)) {
-                Text(s.recommendationLabel(chosen),style=GakimType.CaptionBold.copy(fontSize=16.sp,lineHeight=20.sp),color=GakimColors.OnAccent,maxLines=1)
+                Text(s.recommendationLabel(chosen),style=GakimType.CaptionBold.copy(fontSize=18.sp,lineHeight=22.sp),color=GakimColors.OnAccent,maxLines=1)
             }
         }
         Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(4.dp)) {
@@ -130,32 +131,35 @@ private fun CandidateCard(s:PlannerState,options:List<Option>,vm:PlannerActions,
                     // 가득 찬 배터리에는 충전을 권하지 않는다(심사 검증 지적: 100%인데 충전 선택지가 살아 있었다).
                     val full=mode!=ChargeMode.NONE && batteryFull(s.energy,s.now)
                     val available=enabled && !full && target?.chargeControlEnabled()==true && (mode==ChargeMode.NONE || !noCharger)
-                    Column(Modifier.weight(1f).heightIn(min=94.dp).background(if(chosen.mode==mode) GakimColors.Accent else androidx.compose.ui.graphics.Color.Transparent)
+                    val on=chosen.mode==mode
+                    // 고른 카드만 민트로 채운다. 고르지 않은 카드는 테두리로만 보여 준다(두 카드가 모두 선택된 것처럼 보였다).
+                    Column(Modifier.weight(1f).heightIn(min=94.dp).background(if(on && selected!=null) GakimColors.Accent else androidx.compose.ui.graphics.Color.Transparent)
+                        .then(if(on && selected==null) Modifier.border(2.dp,GakimColors.Accent,CardShape) else Modifier)
                         .clickable(enabled=available,role=Role.RadioButton) { target?.let(::choose) }.padding(horizontal=6.dp,vertical=10.dp),
                         horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
-                        val color=if(chosen.mode==mode) GakimColors.Background else if(!available) GakimColors.TextDim else GakimColors.Text
+                        val color=if(on && selected!=null) GakimColors.Background else if(on) GakimColors.Accent else if(!available) GakimColors.TextDim else GakimColors.Text
                         Text(mode.driverLabel(),style=GakimType.CaptionBold.copy(fontSize=18.sp,fontWeight=FontWeight.Bold),color=color,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-                        Text(if(full) "배터리가 가득 찼어요" else chargeControlLine(target),style=GakimType.Caption.copy(fontSize=16.sp,lineHeight=20.sp),color=color,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+                        Text(if(full) "배터리가 가득 찼어요" else chargeControlLine(target),style=GakimType.Caption.copy(fontSize=18.sp,lineHeight=22.sp),color=color,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
                     }
                     if(index<2) Box(Modifier.width(1.dp).fillMaxHeight().background(GakimColors.Outline))
                 }
             }
             if(noCharger) Text("충전소 정보가 없어 시간만 비교해요",style=GakimType.Caption,color=GakimColors.Tight)
-            Text(benefitLine(chosen,s.energy,s.now,site),style=GakimType.Caption,color=if(chosen.selectable) GakimColors.Text else GakimColors.Tight)
+            Text(benefitLine(chosen,s.energy,s.now,site),style=GakimType.Body.copy(fontSize=22.sp,lineHeight=30.sp),color=if(chosen.selectable) GakimColors.Text else GakimColors.Tight)
             val segments=chosen.elapsedSegments(depart)
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                 listOf("이동" to (segments?.get(0)?.let { "${it}분" } ?: "—"),
                     chosen.activityLabel() to "${chosen.visits.filter { it.activity!=Activity.CHARGE }.sumOf { it.stayMinutes }}분",
                     chosen.extraStopLabel() to (if(chosen.mode==ChargeMode.NONE) "—" else segments?.get(2)?.let { "${it}분" } ?: "—")).forEach { (label,value) ->
                     Column(Modifier.weight(1f)) {
-                        Text(label,style=GakimType.Caption.copy(fontSize=16.sp))
+                        Text(label,style=GakimType.Caption.copy(fontSize=18.sp))
                         Text(value,style=GakimType.Title.copy(fontSize=28.sp,fontWeight=FontWeight.Bold))
                     }
                 }
             }
             Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                 chosen.statusChips(site,chosen.visits.any { it.place?.demo==true }).forEach { label ->
-                    Text(label,style=GakimType.Caption.copy(fontSize=16.sp,lineHeight=22.sp),color=if(label=="사용 가능") GakimColors.Accent else GakimColors.TextDim,
+                    Text(label,style=GakimType.Caption.copy(fontSize=18.sp,lineHeight=24.sp),color=if(label=="사용 가능") GakimColors.Accent else GakimColors.TextDim,
                         modifier=Modifier.clip(PillShape).background(GakimColors.SurfaceHigh).padding(horizontal=8.dp,vertical=3.dp),maxLines=1)
                 }
             }
@@ -184,7 +188,7 @@ internal fun FitLine(text:String,style:androidx.compose.ui.text.TextStyle,modifi
 }
 
 @Composable
-private fun PlannerTimeline(option:Option,depart:LocalDateTime,modifier:Modifier=Modifier) {
+internal fun PlannerTimeline(option:Option,depart:LocalDateTime,modifier:Modifier=Modifier) {
     val segments=option.elapsedSegments(depart)
     val colours=listOf(GakimColors.Voice,GakimColors.TextDim,GakimColors.Accent)
     Column(modifier,verticalArrangement=Arrangement.spacedBy(8.dp)) {

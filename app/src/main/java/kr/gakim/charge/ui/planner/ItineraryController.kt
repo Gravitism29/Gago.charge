@@ -115,6 +115,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         (visit?.let { repository.candidates(it.copy(place=null)) } ?: emptyList()) + repository.namedPlaceChoices + state.value.savedPlaces +
         if (repository.allowDemoPlaces) repository.catalog.map { it.place } else emptyList())
         .filter { it.name.isNotBlank() && it.validCoordinates }.distinctBy { it.id }
+    fun sentByThisApp(p:NaviPlace):Boolean = sentPlaces.any { PlaceMatcher.samePlace(p,it.toNavi()) }
     private fun resolvedPlace(p:NaviPlace):Place {
         val raw=p.toPlace("현재 내비")
         val matches=sentPlaces.filter { PlaceMatcher.samePlace(p,it.toNavi()) }.distinctBy { it.id }
@@ -204,9 +205,10 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         when(command) {
             is PlannerVoiceCommand.Proceed -> {
                 val groups=s.candidateGroups()
+                // 이름 전체가 같으면 그곳, 아니면 앞부분만 말한 경우("백경한우로")도 한 곳으로 좁혀질 때만 받는다.
                 val targets=if(command.placeName==null) emptyList() else groups.filter { group ->
                     group.any { it.placeName(s).replace(" ","")==command.placeName }
-                }
+                }.ifEmpty { groups.filter { group -> group.any { it.placeName(s).replace(" ","").startsWith(command.placeName.orEmpty()) } } }
                 val target=if(command.placeName==null) s.selected?.takeIf { selected ->
                     groups.chunked(2).getOrNull(s.candidatePage).orEmpty().flatten().any { it.id==selected.id }
                 } else targets.singleOrNull()?.let { group ->
@@ -224,6 +226,9 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
                 else set(state.value.copy(message="이 장소에서는 해당 충전 방식을 확인할 수 없어요. 자세히를 확인해 주세요."))
             }
             PlannerVoiceCommand.OtherPlaces -> setCandidatePage((s.candidatePage+1) % s.candidateGroups().chunked(2).size.coerceAtLeast(1))
+            is PlannerVoiceCommand.Pick -> pickGroup(s,s.candidateGroups().chunked(2).getOrNull(s.candidatePage)?.getOrNull(command.index))
+            PlannerVoiceCommand.PickRecommended -> pickGroup(s,s.recommendedForDisplay()?.let { r -> s.candidateGroups().firstOrNull { g -> g.any { it.id==r.id } } })
+            PlannerVoiceCommand.Compare -> if(!s.loading && s.inputBlocker==null && s.plan.visits.isNotEmpty()) compare() else set(state.value.copy(message=s.inputBlocker ?: "잠시만요, 아직 준비 중이에요."))
             PlannerVoiceCommand.Back -> back()
             PlannerVoiceCommand.Confirm -> Unit // ViewModel invokes the shared CTA path, never a second send path.
             PlannerVoiceCommand.KeepDestination -> if(s.removedPlaces().isNotEmpty() && s.canKeepDestination()) keepExistingDestination()
@@ -231,6 +236,10 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             PlannerVoiceCommand.ReplaceDestination -> if(s.removedPlaces().isNotEmpty()) setAcknowledged(true)
         }
         return command
+    }
+    private fun pickGroup(s:PlannerState,group:List<Option>?) {
+        val target=group?.let { g -> g.firstOrNull { it.id==s.recommendedForDisplay()?.id } ?: g.firstOrNull { it.mode==s.plan.chargeMode && it.selectable } ?: g.firstOrNull { it.mode==ChargeMode.NONE && it.selectable } }
+        if(target!=null) selectMode(target.id) else set(state.value.copy(message="갈 곳을 화면에서 골라 주세요."))
     }
     fun clearSelection() { if(!state.value.busy && state.value.park!=ParkState.MOVING) set(state.value.copy(selectedId=null,selectionExplicit=false,allowRecommendation=false,acknowledged=false,approvalKey=null)) }
     fun compare() { if (state.value.pendingTime == null && state.value.question == null) set(calculate(state.value).copy(screen = 1)) }
@@ -440,7 +449,7 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
         val options = allOptions.filter { s.plan.chargeMode == ChargeMode.AUTO || it.mode == s.plan.chargeMode || it.id in noChargerFallback }
         val previous = s.selectedId?.takeIf { id -> s.selectionExplicit && options.any { it.id == id && it.selectable } }
         val searching = repository.searchingPlaces
-        val next=s.copy(searchingPlaces = searching, options = options, comparisonOptions = allOptions, chargingSites = sites, selectedId = previous ?: if(s.allowRecommendation) recommend(options)?.id else null, selectionExplicit = previous != null,
+        val next=s.copy(searchingPlaces = searching, options = options, comparisonOptions = allOptions, chargingSites = sites, selectedId = previous ?: if(s.allowRecommendation) recommend(options,s.energy.socPercent?.takeIf { it.evidence.fresh(s.now) }?.value)?.id else null, selectionExplicit = previous != null,
             inputBlocker=when { s.departureExpired -> "출발 예정 시각이 지났어요. 지금 출발하거나 새 시각을 정해 주세요.";candidates.isEmpty() && !searching -> noNearbyPlace;else->null })
         // A completed handoff has no pending approval to invalidate. Pre-send checks remain unchanged.
         return if(next.phase != ApplyPhase.APPLIED && next.acknowledged && next.approvalKey!=next.selected?.let(::reviewKey)) next.copy(acknowledged=false,approvalKey=null,

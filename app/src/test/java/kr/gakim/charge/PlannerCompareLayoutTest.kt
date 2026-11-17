@@ -72,4 +72,14 @@ class PlannerCompareLayoutTest {
         assertEquals(kr.gakim.charge.domain.TimingStatus.TIGHT,timingStatus(4))
         assertEquals(kr.gakim.charge.domain.TimingStatus.OK,timingStatus(5))
     }
+
+    // 2026-11-17 평가(2팀): 두 식당의 숫자가 같으면 고를 근거가 없었다.
+    @org.junit.Test fun sameTimesAndChargerPlaceAreExplained() {
+        val a=option(ChargeMode.TOP_UP,1,22)
+        org.junit.Assert.assertEquals("두 곳 모두 끝나는 시각이 같아요. 가고 싶은 곳으로 고르세요.",sameTimesLine(listOf(listOf(a),listOf(a.copy(id="b")))))
+        org.junit.Assert.assertNull(sameTimesLine(listOf(listOf(a))))
+        val ev=kr.gakim.charge.domain.itinerary.Evidence("한국환경공단",java.time.LocalDateTime.of(2026,11,17,12,0))
+        org.junit.Assert.assertEquals("충전기 같은 주차장",kr.gakim.charge.domain.itinerary.ChargingSite(Availability.AVAILABLE,evidence=ev,note="무비1종 · 같은 주차장 · 사용 가능").placeLine())
+        org.junit.Assert.assertEquals("충전기까지 도보 120 m",kr.gakim.charge.domain.itinerary.ChargingSite(Availability.AVAILABLE,evidence=ev,note="A · 근처 충전소 · 도보 120 m").placeLine())
+    }
 }

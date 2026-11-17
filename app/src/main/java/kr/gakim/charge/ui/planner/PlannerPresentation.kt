@@ -67,6 +67,18 @@ internal fun Option.chargeDetail(visit: Visit): String = when {
 }
 /** 계산에 쓴 출발 시각. 화면이 '지금'으로 다시 세면 같은 계획의 이동·끝 시각이 화면마다 달라진다. */
 internal fun Option.computedDeparture(): LocalDateTime? = totalMinutes?.let { total -> results.lastOrNull()?.finish?.minusMinutes(total) }
+/** 사용자가 말하거나 고른 할 일이 하나라도 있는지(처음의 기본 칸은 제외). */
+internal fun PlannerState.hasRealVisit(): Boolean = plan.visits.any { !it.placeholder }
+/** 비교 카드에서 곳마다 다를 수 있는 정보: 충전기가 같은 주차장인지, 걸어서 얼마인지. 충전기 코드명은 운전자에게 뜻이 없어 뺀다. 시연 데이터는 보이지 않는다. */
+internal fun ChargingSite.placeLine(): String? {
+    if (evidence.demo) return null
+    val parts = note.split(" · ")
+    return if ("같은 주차장" in parts) "충전기 같은 주차장" else parts.firstOrNull { it.startsWith("도보 ") }?.let { "충전기까지 $it" }
+}
+/** 한 쪽에 보이는 곳들의 충전 방식별 끝 시각이 모두 같으면, 고를 기준이 시간이 아님을 알려 준다. */
+internal fun sameTimesLine(groups: List<List<Option>>): String? =
+    if (groups.size > 1 && groups.map { g -> g.map { it.mode to it.results.lastOrNull()?.finish }.toSet() }.distinct().size == 1)
+        "${if (groups.size == 2) "두" else "모든"} 곳 모두 끝나는 시각이 같아요. 가고 싶은 곳으로 고르세요." else null
 internal fun PlannerState.shownDeparture(option: Option? = selected): LocalDateTime = plan.departure ?: option?.computedDeparture() ?: now
 internal fun goLabel(name: String): String = if (name.length > 9) "여기로 가기 →" else withRo(name) + " 가기 →"
 

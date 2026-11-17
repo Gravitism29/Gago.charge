@@ -113,14 +113,14 @@ internal fun ClockEditor(initial:LocalDateTime?,now:LocalDateTime,deadline:Boole
     var message by remember { mutableStateOf<String?>(null) }
     val reject:()->Unit={message=if(deadline) "이미 지난 시각이에요. 현재 이후로 정해 주세요." else "출발 예정 시각은 현재 이후로 정해 주세요."}
     fun choose(next:Int) {
-        // 오늘/내일을 누르면 '시간 제약 없음'이 풀린다(에뮬레이터 확인: 풀 방법이 안 보였다).
+        // 오늘/내일을 누르면 '정해진 시각 없음'이 풀린다(에뮬레이터 확인: 풀 방법이 안 보였다).
         if(dialClockAllowed(next,now)) { selected=dialClockTime(next,now);message=null;active=true } else reject()
     }
     Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             PlannerPill("오늘",{choose(Math.floorMod(value,MINUTES_PER_DAY))},Modifier.weight(1f),enabled,active && selected.toLocalDate()==now.toLocalDate())
             PlannerPill("내일",{choose(Math.floorMod(value,MINUTES_PER_DAY)+MINUTES_PER_DAY)},Modifier.weight(1f),enabled,active && selected.toLocalDate()==now.toLocalDate().plusDays(1))
-            PlannerPill(if(deadline) "시간 제약 없음" else "지금 출발",{
+            PlannerPill(if(deadline) "정해진 시각 없음" else "지금 출발",{
                 if(!active && !dialClockAllowed(value,now)) {
                     selected=dialClockTime(minimumDialClockValue(now),now)
                 }
@@ -131,7 +131,7 @@ internal fun ClockEditor(initial:LocalDateTime?,now:LocalDateTime,deadline:Boole
             if(deadline) "도착 시각" else "출발 시각",reject)
         Text(message ?: "현재 ${at(now,now)} · 오늘은 10분 이후부터 정할 수 있어요",style=GakimType.Caption,
             color=if(message!=null) GakimColors.Tight else GakimColors.TextDim,modifier=Modifier.semantics { liveRegion=LiveRegionMode.Polite })
-        PrimaryButton(if(active) "이 시각으로 정하기" else if(deadline) "시간 제약 없이 정하기" else "지금 출발하기",{
+        PrimaryButton(if(active) "이 시각으로 정하기" else if(deadline) "정해진 시각 없이 두기" else "지금 출발하기",{
             if(!active) apply(null) else if(dialClockAllowed(value,now)) apply(dialClockTime(value,now)) else reject()
         },Modifier.fillMaxWidth(),enabled)
     }

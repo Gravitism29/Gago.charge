@@ -116,7 +116,7 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
         .sortedBy { it.first }
 
     // A deadline belongs to one visit. Do not interpret this correction as a new activity or place.
-    val noDeadline = Regex("시간\\s*(제약|제한)\\s*없|몇\\s*시든|아무\\s*때나|시간은?\\s*상관\\s*없").containsMatchIn(normalized)
+    val noDeadline = Regex("시간\\s*(제약|제한)\\s*없|정해진\\s*(시각|시간)\\s*없|몇\\s*시든|아무\\s*때나|시간은?\\s*상관\\s*없").containsMatchIn(normalized)
     if (noDeadline && (plan.visits.any { it.deadline != null } || activities.isEmpty() || correctionOnly || focusedVisitId != null)) {
         val all = Regex("모든|전체").containsMatchIn(normalized)
         val focusedVisit = plan.visits.firstOrNull { it.id == focusedVisitId }
@@ -134,12 +134,12 @@ fun interpretItinerary(text: String, current: Itinerary, catalog: List<CatalogEn
         }
         if (all) {
             plan = plan.copy(visits = plan.visits.map { it.copy(deadline = null) })
-            applied += "모든 방문 시간 제약 없음"
+            applied += "모든 방문 정해진 시각 없음"
         } else if (target != null) {
             plan = plan.copy(visits = plan.visits.map { if (it.id == target.id) it.copy(deadline = null) else it })
-            applied += "${target.place?.name ?: target.label} 시간 제약 없음"
+            applied += "${target.place?.name ?: target.label} 정해진 시각 없음"
         } else if (plan.visits.size == 1) {
-            applied += "시간 제약 없음"
+            applied += "정해진 시각 없음"
         }
         return SpeechUpdate(plan, applied)
     }

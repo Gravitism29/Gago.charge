@@ -228,7 +228,8 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             PlannerVoiceCommand.OtherPlaces -> setCandidatePage((s.candidatePage+1) % s.candidateGroups().chunked(2).size.coerceAtLeast(1))
             is PlannerVoiceCommand.Pick -> pickGroup(s,s.candidateGroups().chunked(2).getOrNull(s.candidatePage)?.getOrNull(command.index))
             PlannerVoiceCommand.PickRecommended -> pickGroup(s,s.recommendedForDisplay()?.let { r -> s.candidateGroups().firstOrNull { g -> g.any { it.id==r.id } } })
-            PlannerVoiceCommand.Compare -> if(!s.loading && s.inputBlocker==null && s.plan.visits.isNotEmpty()) compare() else set(state.value.copy(message=s.inputBlocker ?: "잠시만요, 아직 준비 중이에요."))
+            PlannerVoiceCommand.Compare -> if(!s.hasRealVisit()) set(state.value.copy(message="먼저 할 일을 말해 주세요. 예: 병원에 30분 들렀다 갈게"))
+                else if(!s.loading && s.inputBlocker==null) compare() else set(state.value.copy(message=s.inputBlocker ?: "잠시만요, 아직 준비 중이에요."))
             PlannerVoiceCommand.Back -> back()
             PlannerVoiceCommand.Confirm -> Unit // ViewModel invokes the shared CTA path, never a second send path.
             PlannerVoiceCommand.KeepDestination -> if(s.removedPlaces().isNotEmpty() && s.canKeepDestination()) keepExistingDestination()
@@ -464,6 +465,9 @@ class ItineraryController(private var gateways: GatewaySet, private val reposito
             is SpeechEvent.Final -> acceptTranscript(event.text, source)
         }
     }
+    /** 확인 화면에서는 명령이 아닌 말로 일정을 바꾸지 않는다(이미 확인한 계획이 몰래 바뀌는 것을 막는다). */
+    fun ignoreOnConfirm(text:String,source:String) = set(state.value.copy(transcript=text,partial="",listening=false,speechSource=source,
+        applyMessage="“$text” — 일정은 그대로예요. ‘안내 시작’ 또는 ‘다른 곳으로’라고 말해 주세요."))
     fun speechStopped() { set(state.value.copy(listening = false, level = 0f)) }
     fun acceptTranscript(text: String, source: String = "테스트 확정 문장") = edit { s ->
         val result = interpretItinerary(text, s.plan, speechCatalog(), now(), focusedVisitId=speechFocus, remotePlaces = repository.remotePlacesEnabled)

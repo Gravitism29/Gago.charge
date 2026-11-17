@@ -57,7 +57,7 @@ internal fun PlannerCompare(s:PlannerState,vm:PlannerActions,open:(String)->Unit
         Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
             Column(Modifier.weight(1f)) {
                 Text(if(groups.size==1) "이 일정으로 갈까요?" else "어디로 들렀다 갈까요?",style=GakimType.Assistant,maxLines=1)
-                Text(s.presentationIssue()?.line ?: (if(s.demoMartFallback) martFallbackLine else s.message) ?: "${at(depart,s.now)} 출발 · ${s.plan.visits.joinToString(" → ") { it.place?.name ?: it.label }}",style=GakimType.Caption,maxLines=2)
+                Text(s.presentationIssue()?.line ?: (if(s.demoMartFallback) martFallbackLine else s.message) ?: sameTimesLine(pages.getOrNull(pager.currentPage).orEmpty()) ?: "${at(depart,s.now)} 출발 · ${s.plan.visits.joinToString(" → ") { it.place?.name ?: it.label }}",style=GakimType.Caption,maxLines=2)
             }
             if(s.presentationIssue()?.retry==true) PlannerPill("다시 시도",vm::refresh,enabled=enabled)
             if(pages.size>1) {
@@ -110,8 +110,12 @@ private fun CandidateCard(s:PlannerState,options:List<Option>,vm:PlannerActions,
         Column(Modifier.fillMaxWidth().height(64.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
             Text(chosen.placeName(s),style=GakimType.Title,maxLines=1,overflow=TextOverflow.Ellipsis)
             if(chosen.closingNotices.isNotEmpty()) FitLine("⚠ ${chosen.closingNotices.joinToString(" · ") { it.label }}",GakimType.CaptionBold.copy(color=GakimColors.Tight))
-            else if(options.any { it.id==recommended?.id }) Box(Modifier.clip(PillShape).background(GakimColors.brandH()).padding(horizontal=10.dp,vertical=2.dp)) {
-                Text(s.recommendationLabel(chosen),style=GakimType.CaptionBold.copy(fontSize=18.sp,lineHeight=22.sp),color=GakimColors.OnAccent,maxLines=1)
+            else Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                if(options.any { it.id==recommended?.id }) Box(Modifier.clip(PillShape).background(GakimColors.brandH()).padding(horizontal=10.dp,vertical=2.dp)) {
+                    Text(s.recommendationLabel(chosen),style=GakimType.CaptionBold.copy(fontSize=18.sp,lineHeight=22.sp),color=GakimColors.OnAccent,maxLines=1)
+                }
+                // 2026-11-17 평가(2팀): 두 식당의 숫자가 같으면 고를 근거가 없었다. 곳마다 다른 충전기 이름·거리를 보여 준다.
+                site?.placeLine()?.let { Text(it,style=GakimType.Caption.copy(fontSize=18.sp),maxLines=1,overflow=TextOverflow.Ellipsis) }
             }
         }
         Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(4.dp)) {

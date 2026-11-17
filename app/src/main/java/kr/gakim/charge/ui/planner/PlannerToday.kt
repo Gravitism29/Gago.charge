@@ -48,7 +48,8 @@ internal fun PlannerToday(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
                 }
                 if(visit==null) {
                     s.plan.departure?.let { Pill("출발 ${at(it,s.now)}",color=GakimColors.Voice) }
-                    s.plan.visits.forEachIndexed { index,v ->
+                    // 2026-11-17 평가(3팀): 말하기 전부터 '장보기 20분'이 들어 있어 이미 정한 일정처럼 보였다. 기본 칸은 숨긴다.
+                    s.plan.visits.filterNot { it.placeholder }.forEachIndexed { index,v ->
                         VisitChip(index,v,s,enabled) { editing=v.id }
                     }
                     Box(Modifier.fillMaxWidth().height(64.dp).drawBehind {
@@ -104,7 +105,7 @@ internal fun PlannerToday(s:PlannerState,vm:PlannerActions,open:(String)->Unit) 
             PlannerPill("더보기",{open("more")},enabled=enabled)
             Spacer(Modifier.weight(1f))
             // 편집 중에는 주 버튼을 하나만 둔다(편집 마치기).
-            if(visit==null) PrimaryButton("일정에 맞는 곳 비교 →",{vm.stopListening();c.compare()},Modifier.width(380.dp),enabled=enabled && !s.loading && s.inputBlocker==null && s.pendingTime==null && s.question==null)
+            if(visit==null) PrimaryButton("일정에 맞는 곳 비교 →",{vm.stopListening();c.compare()},Modifier.width(380.dp),enabled=enabled && s.hasRealVisit() && !s.loading && s.inputBlocker==null && s.pendingTime==null && s.question==null)
         }
     }
 }
